@@ -1,0 +1,15 @@
+[project]
+name = "distiller"
+version = "0.0.1"
+description = "员工蒸馏器 MVP — 无感蒸馏可复用工具（团队版去风险原型）"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+# 随里程碑逐步加：mistune / qdrant-client / tree-sitter / uv 等
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

@@ -1,0 +1,41 @@
+# --- 运行时数据（敏感：捕获的 trace、代码快照、输入样本；不入代码库）---
+.distiller-data/
+data/
+traces/
+artifacts/
+candidates/
+vectors/
+*.sqlite
+*.sqlite-*
+
+# --- 密钥 / 本地配置 ---
+.env
+*.local.toml
+secrets/
+config.local.*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# --- 重放沙箱 / doc2md 临时产物 ---
+/tmp/distiller/
+.doc2md_*/
+_doc2md_*/
+assets/
+
+# --- Codex 审核临时输出 ---
+reports-codex-review-*.txt
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+.claude/settings.local.json
