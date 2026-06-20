@@ -204,18 +204,18 @@ function slide1(slide) {
   addText(slide, {
     left: 72,
     top: 262,
-    width: 690,
-    height: 82,
-    text: "把社畜踩出来的活路，炼成下次不用重写的工具、熟路和团队资产。",
-    fontSize: 28,
+    width: 720,
+    height: 116,
+    text: "把世界各处已经被踩出来的做法，蒸成可流动的核心能力；再让它到谁手里，就长成谁的工具。",
+    fontSize: 27,
     color: COLORS.muted,
   });
   addText(slide, {
     left: 72,
-    top: 446,
-    width: 590,
+    top: 430,
+    width: 760,
     height: 30,
-    text: "今天只讲：一个例子、它为什么值得做、终局长什么样。",
+    text: "今天不从流程讲起，直接讲终局、一个例子，以及为什么它可能会改写软件长什么样。",
     fontSize: 20,
     color: COLORS.ink,
   });
@@ -224,7 +224,7 @@ function slide1(slide) {
     left: 826,
     top: 158,
     width: 332,
-    height: 314,
+    height: 346,
     fill: COLORS.dark,
     lineFill: COLORS.dark,
     lineWidth: 0,
@@ -242,122 +242,82 @@ function slide1(slide) {
     bold: true,
   });
   addBullets(slide, [
-    "杂活永远有人做，但总是很难留下来",
-    "蒸馏器保存的不是文档，而是“这套做法”",
-    "终局不是个人外挂，而是项目组熟路网",
-  ], 854, 246, 226, 60, 23, "#FFFFFF");
+    "蒸馏的不是个人经验，也不只是团队资产，而是世界已经踩出来的做法",
+    "共享的不是一个通用 app，而是可流动的核心能力",
+    "前台以后应该按人显形，而不是所有人被迫共用一层壳",
+  ], 854, 246, 226, 72, 20, "#FFFFFF");
 }
 
 function slide2(slide) {
   addChrome(slide, 2, 4);
-  addTitle(slide, "先看一个大家都懂的杂活", "把一堆文档整理成能喂给 LLM 的 Markdown。");
+  addTitle(slide, "终局：共享核心能力，前台按人显形", "不是每个人共用一个通用 app，而是把别人已经踩出来的做法，直接推成对方会用的工具。");
 
   addBox(slide, {
     left: 72,
     top: 188,
-    width: 328,
-    height: 334,
+    width: 336,
+    height: 262,
     fill: COLORS.paper,
     lineFill: COLORS.line,
     lineWidth: 1,
     radius: "rounded-3xl",
   });
-  addTag(slide, "任务开场", 96, 212, 82, COLORS.tealSoft, COLORS.teal);
+  addTag(slide, "1 今天", 96, 212, 84, COLORS.tealSoft, COLORS.teal);
   addText(slide, {
     left: 96,
     top: 258,
-    width: 220,
+    width: 250,
     height: 38,
-    text: "新人接手资料包",
-    fontSize: 28,
+    text: "每个人都在调自己的 app",
+    fontSize: 26,
     color: COLORS.ink,
     bold: true,
   });
   addBullets(slide, [
-    "pdf、docx、xlsx 混在一起",
-    "图片散在子目录里",
-    "今晚前要给 agent 一份可用 md 语料",
-  ], 96, 328, 240, 58, 18, COLORS.ink);
-
-  addText(slide, {
-    left: 418,
-    top: 336,
-    width: 42,
-    height: 24,
-    text: "→",
-    fontSize: 34,
-    color: COLORS.accent,
-    bold: true,
-    align: "center",
-  });
+    "有人爱高密度，有人只要安静清单",
+    "很多怪问题，别人其实已经踩过",
+    "但修法、prompt、结构都烂在个人库",
+  ], 96, 322, 260, 48, 16, COLORS.ink);
 
   addBox(slide, {
-    left: 488,
+    left: 432,
     top: 188,
-    width: 312,
-    height: 334,
+    width: 336,
+    height: 262,
     fill: COLORS.tealSoft,
     lineFill: COLORS.tealSoft,
     lineWidth: 0,
     radius: "rounded-3xl",
   });
-  addTag(slide, "于是开始手搓", 512, 212, 114, COLORS.paper, COLORS.teal);
+  addTag(slide, "2 如果能推", 456, 212, 116, COLORS.paper, COLORS.teal);
   addBullets(slide, [
-    "先扫目录，再补 pdf / docx 分支",
-    "路径、图片、表格一坏就加 repair",
-    "实在不行就 fallback 到通用库",
-  ], 512, 286, 240, 62, 18, COLORS.ink);
-
-  addText(slide, {
-    left: 820,
-    top: 336,
-    width: 42,
-    height: 24,
-    text: "→",
-    fontSize: 34,
-    color: COLORS.accent,
-    bold: true,
-    align: "center",
-  });
+    "把 repair / prompt / flow 蒸成一个 core",
+    "发给另一个人的个人库或团队库",
+    "到了对方那里，不必保持原样",
+  ], 456, 286, 256, 54, 17, COLORS.ink);
 
   addBox(slide, {
-    left: 892,
+    left: 792,
     top: 188,
-    width: 288,
-    height: 334,
-    fill: COLORS.accentSoft,
-    lineFill: COLORS.accentSoft,
-    lineWidth: 0,
+    width: 388,
+    height: 262,
+    fill: COLORS.paper,
+    lineFill: COLORS.line,
+    lineWidth: 1,
     radius: "rounded-3xl",
   });
-  addTag(slide, "一周后", 916, 212, 74, COLORS.paper, COLORS.accent);
+  addTag(slide, "终局感", 816, 212, 84, COLORS.accentSoft, COLORS.accent);
   addBullets(slide, [
-    "脚本还在，但只有自己看得懂",
-    "别人接手还是会从头再搓一版",
-    "agent 下次遇到类似任务，也继续假装第一次见",
-  ], 916, 286, 214, 64, 18, COLORS.ink);
-
-  addText(slide, {
-    left: 72,
-    top: 566,
-    width: 1050,
-    height: 28,
-    text: "所以蒸馏器瞄准的不是“把文档转成 md”，而是“把这套做法留下来”。",
-    fontSize: 22,
-    color: COLORS.accent,
-    bold: true,
-  });
-}
-
-function slide3(slide) {
-  addChrome(slide, 3, 4);
-  addTitle(slide, "拿 doc2md 来看，年轮其实是看得见的", "不是抽象“迭代”，而是代码里真实长出来的分支、repair、fallback 和 shared step。");
+    "共享的是核心能力，不是同一套界面",
+    "前台会按对方知识库、审美、权限重新长",
+    "最后真正通用的，只剩同步、审查、权限、血缘",
+  ], 816, 286, 286, 54, 17, COLORS.ink);
 
   addBox(slide, {
     left: 72,
-    top: 170,
-    width: 1136,
-    height: 84,
+    top: 488,
+    width: 286,
+    height: 114,
     fill: COLORS.dark,
     lineFill: COLORS.dark,
     lineWidth: 0,
@@ -365,155 +325,261 @@ function slide3(slide) {
     shadow: "shadow-md",
   });
   addText(slide, {
-    left: 104,
-    top: 186,
-    width: 280,
-    height: 26,
-    text: "doc2md = 一个目的：",
-    fontSize: 23,
-    color: "#FFFFFF",
-    bold: true,
-  });
-  addText(slide, {
-    left: 104,
-    top: 214,
-    width: 360,
-    height: 30,
-    text: "任意文档 -> Markdown",
-    fontSize: 23,
-    color: "#FFFFFF",
-    bold: true,
-  });
-  addText(slide, {
-    left: 472,
-    top: 206,
-    width: 620,
+    left: 96,
+    top: 512,
+    width: 212,
     height: 24,
-    text: "所以 pdf / docx / xlsx / pptx 不该拆成五个小工具，而是同一目的下不断长出来的几圈年轮。",
+    text: "甲：偏高密度控制台",
+    fontSize: 20,
+    color: "#FFFFFF",
+    bold: true,
+  });
+  addText(slide, {
+    left: 96,
+    top: 548,
+    width: 222,
+    height: 34,
+    text: "把 repair、fallback、review 都堆在一屏。",
     fontSize: 16,
     color: "#E7E5E4",
   });
 
+  addText(slide, {
+    left: 374,
+    top: 532,
+    width: 44,
+    height: 24,
+    text: "→",
+    fontSize: 34,
+    color: COLORS.accent,
+    bold: true,
+    align: "center",
+  });
+
+  addBox(slide, {
+    left: 432,
+    top: 488,
+    width: 286,
+    height: 114,
+    fill: COLORS.accentSoft,
+    lineFill: COLORS.accentSoft,
+    lineWidth: 0,
+    radius: "rounded-3xl",
+  });
+  addText(slide, {
+    left: 456,
+    top: 512,
+    width: 210,
+    height: 24,
+    text: "中间推送的不是界面",
+    fontSize: 20,
+    color: COLORS.ink,
+    bold: true,
+  });
+  addText(slide, {
+    left: 456,
+    top: 548,
+    width: 220,
+    height: 34,
+    text: "而是蒸馏后的做法、repair 和 flow。",
+    fontSize: 16,
+    color: COLORS.muted,
+  });
+
+  addText(slide, {
+    left: 734,
+    top: 532,
+    width: 44,
+    height: 24,
+    text: "→",
+    fontSize: 34,
+    color: COLORS.accent,
+    bold: true,
+    align: "center",
+  });
+
+  addBox(slide, {
+    left: 792,
+    top: 488,
+    width: 388,
+    height: 114,
+    fill: COLORS.paper,
+    lineFill: COLORS.line,
+    lineWidth: 1,
+    radius: "rounded-3xl",
+  });
+  addText(slide, {
+    left: 816,
+    top: 512,
+    width: 250,
+    height: 24,
+    text: "乙：偏极简",
+    fontSize: 20,
+    color: COLORS.ink,
+    bold: true,
+  });
+  addText(slide, {
+    left: 816,
+    top: 548,
+    width: 300,
+    height: 34,
+    text: "收到后，按他的知识库长成清单、面板或 agent。",
+    fontSize: 16,
+    color: COLORS.muted,
+  });
+}
+
+function slide3(slide) {
+  addChrome(slide, 3, 4);
+  addTitle(slide, "doc2md 这个杂活，正好能看到它怎么长出来", "任务现场 -> 手搓修法 -> 代码年轮。蒸馏器想保住的，是后面两件事。");
+
+  addBox(slide, {
+    left: 72,
+    top: 188,
+    width: 318,
+    height: 164,
+    fill: COLORS.paper,
+    lineFill: COLORS.line,
+    lineWidth: 1,
+    radius: "rounded-3xl",
+  });
+  addTag(slide, "任务现场", 96, 208, 82, COLORS.tealSoft, COLORS.teal);
+  addText(slide, {
+    left: 96,
+    top: 248,
+    width: 200,
+    height: 30,
+    text: "新人接手资料包",
+    fontSize: 25,
+    color: COLORS.ink,
+    bold: true,
+  });
+  addBullets(slide, [
+    "pdf、docx、xlsx 混在一起",
+    "图片散在子目录里",
+  ], 96, 302, 236, 30, 15, COLORS.ink);
+
+  addBox(slide, {
+    left: 72,
+    top: 366,
+    width: 318,
+    height: 146,
+    fill: COLORS.tealSoft,
+    lineFill: COLORS.tealSoft,
+    lineWidth: 0,
+    radius: "rounded-3xl",
+  });
+  addTag(slide, "于是手搓", 96, 388, 82, COLORS.paper, COLORS.teal);
+  addBullets(slide, [
+    "先扫目录，补 pdf / docx 分支",
+    "路径、图片坏了就 repair，不行再 fallback",
+  ], 96, 438, 236, 34, 15, COLORS.ink);
+  addText(slide, {
+    left: 96,
+    top: 492,
+    width: 224,
+    height: 18,
+    text: "一周后：脚本还在，但只有自己看得懂。",
+    fontSize: 14,
+    color: COLORS.muted,
+  });
+
+  addBox(slide, {
+    left: 428,
+    top: 188,
+    width: 752,
+    height: 72,
+    fill: COLORS.dark,
+    lineFill: COLORS.dark,
+    lineWidth: 0,
+    radius: "rounded-3xl",
+    shadow: "shadow-md",
+  });
+  addText(slide, {
+    left: 456,
+    top: 208,
+    width: 390,
+    height: 24,
+    text: "但 `doc2md` 后来没有停在脚本阶段",
+    fontSize: 24,
+    color: "#FFFFFF",
+    bold: true,
+  });
+  addText(slide, {
+    left: 874,
+    top: 212,
+    width: 262,
+    height: 18,
+    text: "它开始长出看得见的几圈年轮",
+    fontSize: 16,
+    color: "#D6D3D1",
+    align: "right",
+  });
+
   const rings = [
-    ["第 1 圈", "先长分支", "suffix 分流\npdf / docx / xlsx / pptx", COLORS.paper],
-    ["第 2 圈", "补坏样本", "扫描 PDF -> scanned\n坏 docx -> relationship repair", COLORS.tealSoft],
-    ["第 3 圈", "挂通用兜底", "兜不住的格式\n走 generic / markitdown", COLORS.accentSoft],
-    ["第 4 圈", "提共享后处理", "最后收敛出\nsanitize_text / table_to_list", COLORS.sand],
+    [428, 278, COLORS.paper, "先长分支", "suffix 分流\npdf / docx / xlsx / pptx"],
+    [816, 278, COLORS.tealSoft, "补坏样本", "扫描 PDF -> _is_scanned\n坏 docx -> _repair_docx_relationships"],
+    [428, 430, COLORS.accentSoft, "挂通用兜底", "兜不住的格式\n走 generic / markitdown"],
+    [816, 430, COLORS.sand, "提共享后处理", "最后收敛出\nsanitize_text / table_to_list"],
   ];
 
-  rings.forEach((ring, idx) => {
-    const x = 72 + idx * 288;
+  rings.forEach((ring) => {
     addBox(slide, {
-      left: x,
-      top: 286,
-      width: 248,
-      height: 196,
-      fill: ring[3],
-      lineFill: ring[3] === COLORS.paper ? COLORS.line : ring[3],
-      lineWidth: ring[3] === COLORS.paper ? 1 : 0,
+      left: ring[0],
+      top: ring[1],
+      width: 364,
+      height: 128,
+      fill: ring[2],
+      lineFill: ring[2] === COLORS.paper ? COLORS.line : ring[2],
+      lineWidth: ring[2] === COLORS.paper ? 1 : 0,
       radius: "rounded-3xl",
     });
-    addTag(slide, ring[0], x + 20, 306, 76, COLORS.paper, COLORS.muted);
     addText(slide, {
-      left: x + 20,
-      top: 350,
-      width: 180,
-      height: 34,
-      text: ring[1],
+      left: ring[0] + 24,
+      top: ring[1] + 24,
+      width: 220,
+      height: 30,
+      text: ring[3],
       fontSize: 26,
       color: COLORS.ink,
       bold: true,
     });
     addText(slide, {
-      left: x + 20,
-      top: 398,
-      width: 204,
-      height: 58,
-      text: ring[2],
-      fontSize: 17,
+      left: ring[0] + 24,
+      top: ring[1] + 70,
+      width: 300,
+      height: 40,
+      text: ring[4],
+      fontSize: 16,
       color: COLORS.muted,
     });
-    if (idx < rings.length - 1) {
-      addText(slide, {
-        left: x + 252,
-        top: 370,
-        width: 28,
-        height: 24,
-        text: "→",
-        fontSize: 28,
-        color: COLORS.accent,
-        bold: true,
-        align: "center",
-      });
-    }
   });
 
   addBox(slide, {
-    left: 72,
-    top: 516,
-    width: 1136,
-    height: 112,
+    left: 428,
+    top: 580,
+    width: 752,
+    height: 52,
     fill: COLORS.dark,
     lineFill: COLORS.dark,
     lineWidth: 0,
     radius: "rounded-3xl",
   });
   addText(slide, {
-    left: 100,
-    top: 536,
-    width: 520,
-    height: 50,
-    text: "这就是“年轮”在代码里的样子：新增分支、补伤疤、挂 fallback、再把通用处理提成 shared。",
-    fontSize: 18,
+    left: 456,
+    top: 596,
+    width: 680,
+    height: 18,
+    text: "代码里看分支 / repair / fallback / shared，设计 md 再把这些变化记成 iteration_log。",
+    fontSize: 16,
     color: "#FFFFFF",
-    bold: true,
-  });
-  addText(slide, {
-    left: 100,
-    top: 589,
-    width: 380,
-    height: 18,
-    text: "然后在设计 md 里，再把这些变化记成 iteration_log。",
-    fontSize: 15,
-    color: "#D6D3D1",
-  });
-
-  addBox(slide, {
-    left: 692,
-    top: 536,
-    width: 430,
-    height: 72,
-    fill: COLORS.paper,
-    lineFill: COLORS.line,
-    lineWidth: 1,
-    radius: "rounded-2xl",
-    shadow: "none",
-  });
-  addText(slide, {
-    left: 714,
-    top: 552,
-    width: 384,
-    height: 18,
-    text: "ver: 3  branch: docx   add _repair_docx_relationships",
-    fontSize: 14,
-    color: COLORS.ink,
-    bold: true,
-  });
-  addText(slide, {
-    left: 714,
-    top: 580,
-    width: 360,
-    height: 18,
-    text: "ver: 4  scope: shared add table_to_list",
-    fontSize: 14,
-    color: COLORS.ink,
     bold: true,
   });
 }
 
 function slide4(slide) {
   addChrome(slide, 4, 4);
-  addTitle(slide, "愿景、技术栈和预期效果", "先帮一个人少重写，最后服务整个项目组；技术栈只要够小够诚实。");
+  addTitle(slide, "先怎么落地", "前台先不做通用 app，先把蒸馏、推送、审查和回灌这条线跑通。");
 
   addBox(slide, {
     left: 72,
@@ -530,15 +596,15 @@ function slide4(slide) {
     top: 214,
     width: 200,
     height: 32,
-    text: "愿景",
+    text: "推进顺序",
     fontSize: 28,
     color: COLORS.ink,
     bold: true,
   });
   addBullets(slide, [
-    "个人模式：先让自己少重写一类杂活",
-    "团队模式：promoted 开始变成团队资产",
-    "项目组模式：相同目的合并，不同环境保留分支",
+    "先个人：先让自己少重写一类杂活",
+    "再团队：promoted 开始变成团队资产",
+    "再项目组：相同目的合并，不同环境保留分支",
   ], 96, 272, 372, 62, 19, COLORS.ink);
 
   addBox(slide, {
