@@ -1,0 +1,243 @@
+{"kind":"deck","id":"pr/o17qx7","name":"Deck"}
+{"kind":"layout","layoutId":"04970f3b-d517-4c4b-876f-966eccc5ef5c","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"28f662b9-8016-4c84-a28c-6f625d5783ac","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/iipg26","slide":1,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":15}
+{"kind":"shape","id":"sh/j2t83itg","slide":1,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":1,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":1,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":1,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":1,"text":"1/8","textPreview":"1/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"shape","id":"sh/8bat47y1","slide":1,"bbox":[72,92,190,34]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":1,"text":"内部预演 / 例子先行","textPreview":"内部预演 / 例子先行","textChars":11,"textLines":1,"bbox":[86,100,162,18]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":1,"text":"手艺人蒸馏器","textPreview":"手艺人蒸馏器","textChars":6,"textLines":1,"bbox":[72,146,680,84]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":1,"text":"把社畜踩出来的活路，炼成下次不用重写的工具、熟路和团队资产。","textPreview":"把社畜踩出来的活路，炼成下次不用重写的工具、熟路和团队资产。","textChars":30,"textLines":1,"bbox":[72,258,690,86]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":1,"text":"这版故意不讲重架构，先用一个例子把“为什么值得做”讲顺。","textPreview":"这版故意不讲重架构，先用一个例子把“为什么值得做”讲顺。","textChars":28,"textLines":1,"bbox":[72,438,570,60]}
+{"kind":"shape","id":"sh/29gr2p8n","slide":1,"bbox":[822,152,344,334]}
+{"kind":"textbox","id":"sh/d0z61032","slide":1,"text":"今天就讲四件事","textPreview":"今天就讲四件事","textChars":7,"textLines":1,"bbox":[852,190,250,24]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[852,244,20,20]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":1,"text":"一个杂活例子","textPreview":"一个杂活例子","textChars":6,"textLines":1,"bbox":[874,244,228,60]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[852,304,20,20]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":1,"text":"为什么它值得做成系统","textPreview":"为什么它值得做成系统","textChars":10,"textLines":1,"bbox":[874,304,228,60]}
+{"kind":"textbox","id":"sh/knih4byh","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[852,364,20,20]}
+{"kind":"textbox","id":"sh/val87ed8","slide":1,"text":"终局长什么样","textPreview":"终局长什么样","textChars":6,"textLines":1,"bbox":[874,364,228,60]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[852,424,20,20]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":1,"text":"技术栈和预期效果","textPreview":"技术栈和预期效果","textChars":8,"textLines":1,"bbox":[874,424,228,60]}
+{"kind":"notes","id":"nt/iipg26","slide":1,"text":""}
+{"kind":"slide","id":"sl/4bsbop","slide":2,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":31}
+{"kind":"shape","id":"sh/il0rqd4v","slide":2,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/tcj6tova","slide":2,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/0rqd4vmt","slide":2,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":2,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":2,"text":"2/8","textPreview":"2/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":2,"text":"先看一个大家都懂的杂活","textPreview":"先看一个大家都懂的杂活","textChars":11,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":2,"text":"把一堆文档整理成能喂给 LLM 的 Markdown。","textPreview":"把一堆文档整理成能喂给 LLM 的 Markdown。","textChars":27,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/bulwval8","slide":2,"bbox":[72,182,320,352]}
+{"kind":"shape","id":"sh/i9s36hcr","slide":2,"bbox":[96,206,108,34]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":2,"text":"真实任务开场","textPreview":"真实任务开场","textChars":6,"textLines":1,"bbox":[110,214,80,18]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":2,"text":"新人接手资料包","textPreview":"新人接手资料包","textChars":7,"textLines":1,"bbox":[96,258,240,38]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,320,20,20]}
+{"kind":"textbox","id":"sh/bulwval8","slide":2,"text":"47 个 pdf，12 个 docx，6 个 xlsx","textPreview":"47 个 pdf，12 个 docx，6 个 xlsx","textChars":27,"textLines":1,"bbox":[118,320,218,54]}
+{"kind":"textbox","id":"sh/032lszqt","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,374,20,20]}
+{"kind":"textbox","id":"sh/tovahoza","slide":2,"text":"图片散在子目录里，文件名一团糟","textPreview":"图片散在子目录里，文件名一团糟","textChars":15,"textLines":1,"bbox":[118,374,218,54]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,428,20,20]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":2,"text":"今晚前要给 agent 一份可用 md 语料","textPreview":"今晚前要给 agent 一份可用 md 语料","textChars":22,"textLines":1,"bbox":[118,428,218,54]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":2,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[418,332,52,24]}
+{"kind":"shape","id":"sh/tcj6tova","slide":2,"bbox":[498,182,292,352]}
+{"kind":"shape","id":"sh/x0nuxc3y","slide":2,"bbox":[522,206,112,34]}
+{"kind":"textbox","id":"sh/4fu18jqh","slide":2,"text":"于是开始手搓","textPreview":"于是开始手搓","textChars":6,"textLines":1,"bbox":[536,214,84,18]}
+{"kind":"textbox","id":"sh/fu18jqh0","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[522,268,20,20]}
+{"kind":"textbox","id":"sh/m94fu18j","slide":2,"text":"先写一个临时脚本把文件全扫一遍","textPreview":"先写一个临时脚本把文件全扫一遍","textChars":15,"textLines":1,"bbox":[544,268,198,58]}
+{"kind":"textbox","id":"sh/xobm58z2","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[522,326,20,20]}
+{"kind":"textbox","id":"sh/83itgfml","slide":2,"text":"pdf 和 docx 分别补分支","textPreview":"pdf 和 docx 分别补分支","textChars":16,"textLines":1,"bbox":[544,326,198,58]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[522,384,20,20]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":2,"text":"路径、图片、表格一坏就加 repair","textPreview":"路径、图片、表格一坏就加 repair","textChars":19,"textLines":1,"bbox":[544,384,198,58]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[522,442,20,20]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":2,"text":"不行再 fallback 到通用库","textPreview":"不行再 fallback 到通用库","textChars":17,"textLines":1,"bbox":[544,442,198,58]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":2,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[812,332,52,24]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":2,"bbox":[892,182,288,352]}
+{"kind":"shape","id":"sh/0z61032l","slide":2,"bbox":[916,206,74,34]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":2,"text":"一周后","textPreview":"一周后","textChars":3,"textLines":1,"bbox":[930,214,46,18]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[916,268,20,20]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":2,"text":"脚本还在，但只有自己看得懂","textPreview":"脚本还在，但只有自己看得懂","textChars":13,"textLines":1,"bbox":[938,268,192,64]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[916,332,20,20]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":2,"text":"别人接手还是会从头再搓一版","textPreview":"别人接手还是会从头再搓一版","textChars":13,"textLines":1,"bbox":[938,332,192,64]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[916,396,20,20]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":2,"text":"agent 下次遇到类似任务，也继续假装第一次见","textPreview":"agent 下次遇到类似任务，也继续假装第一次见","textChars":24,"textLines":1,"bbox":[938,396,192,64]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":2,"text":"这就是蒸馏器瞄准的目标：不是把文档转成 md，而是把“这套做法”留下来。","textPreview":"这就是蒸馏器瞄准的目标：不是把文档转成 md，而是把“这套做法”留下来。","textChars":36,"textLines":1,"bbox":[72,572,1040,24]}
+{"kind":"notes","id":"nt/4bsbop","slide":2,"text":""}
+{"kind":"slide","id":"sl/h1bzjs","slide":3,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":14}
+{"kind":"shape","id":"sh/udg7adsj","slide":3,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/54zidony","slide":3,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/cj6tovah","slide":3,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":3,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":3,"text":"3/8","textPreview":"3/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/5gbq1ory","slide":3,"text":"为什么非做不可","textPreview":"为什么非做不可","textChars":7,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/cvixczed","slide":3,"text":"因为这种杂活不是没人会做，而是永远没人真正记住怎么做。","textPreview":"因为这种杂活不是没人会做，而是永远没人真正记住怎么做。","textChars":27,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/jm1cfa9w","slide":3,"bbox":[72,224,320,262]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":3,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[96,246,50,24]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":3,"text":"写过，但找不到","textPreview":"写过，但找不到","textChars":7,"textLines":1,"bbox":[96,290,230,42]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":3,"text":"临时脚本和补丁常常只活在某次会话或某个临时目录里。","textPreview":"临时脚本和补丁常常只活在某次会话或某个临时目录里。","textChars":25,"textLines":1,"bbox":[96,356,250,92]}
+{"kind":"shape","id":"sh/ex0nuxc3","slide":3,"bbox":[432,224,320,262]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":3,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[456,246,50,24]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":3,"text":"交结果，不交手法","textPreview":"交结果，不交手法","textChars":8,"textLines":1,"bbox":[456,290,230,42]}
+{"kind":"textbox","id":"sh/lwval87e","slide":3,"text":"新人拿到的是一份 md，拿不到为什么这么切分、坏了怎么回退。","textPreview":"新人拿到的是一份 md，拿不到为什么这么切分、坏了怎么回退。","textChars":30,"textLines":1,"bbox":[456,356,250,92]}
+{"kind":"shape","id":"sh/e9cvixcz","slide":3,"bbox":[792,224,320,262]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[816,246,50,24]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":3,"text":"agent 每次从零假装聪明","textPreview":"agent 每次从零假装聪明","textChars":14,"textLines":1,"bbox":[816,290,230,42]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":3,"text":"没有 reuse-before-create，就只能继续重写同类工具。","textPreview":"没有 reuse-before-create，就只能继续重写同类工具。","textChars":35,"textLines":1,"bbox":[816,356,250,92]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":3,"text":"说白了，蒸馏器要保存的不是“代码文件”，而是踩坑踩出来的判断、分支、fallback 和伤疤。","textPreview":"说白了，蒸馏器要保存的不是“代码文件”，而是踩坑踩出来的判断、分支、fallback 和伤疤。","textChars":47,"textLines":1,"bbox":[72,544,1060,46]}
+{"kind":"notes","id":"nt/h1bzjs","slide":3,"text":""}
+{"kind":"slide","id":"sl/o9ho65","slide":4,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":17}
+{"kind":"shape","id":"sh/2t83itgf","slide":4,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/9knih4by","slide":4,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":4,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":4,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":4,"text":"4/8","textPreview":"4/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":4,"text":"它真正做的事其实很朴素","textPreview":"它真正做的事其实很朴素","textChars":11,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":4,"text":"先看见重复，再抽成候选，再验证，最后在下次任务前把成熟做法递回来。","textPreview":"先看见重复，再抽成候选，再验证，最后在下次任务前把成熟做法递回来。","textChars":33,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/r2p8nqxs","slide":4,"bbox":[72,214,238,178]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[92,238,44,24]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":4,"text":"看到","textPreview":"看到","textChars":2,"textLines":1,"bbox":[92,280,180,34]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":4,"text":"从真实工作里看到反复出现的脚本和 repair","textPreview":"从真实工作里看到反复出现的脚本和 repair","textChars":23,"textLines":1,"bbox":[92,332,188,46]}
+{"kind":"shape","id":"sh/ulwval87","slide":4,"bbox":[340,214,238,178]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[360,238,44,24]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":4,"text":"抽出","textPreview":"抽出","textChars":2,"textLines":1,"bbox":[360,280,180,34]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":4,"text":"把它们按“目的 / 契约 / 分支”组织成候选能力","textPreview":"把它们按“目的 / 契约 / 分支”组织成候选能力","textChars":25,"textLines":1,"bbox":[360,332,188,46]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":4,"bbox":[608,214,238,178]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[628,238,44,24]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":4,"text":"验证","textPreview":"验证","textChars":2,"textLines":1,"bbox":[628,280,180,34]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":4,"text":"跑 Replay、Output Gate、Contract，而不是只看它能不能运行","textPreview":"跑 Replay、Output Gate、Contract，而不是只看它能不能运行","textChars":41,"textLines":1,"bbox":[628,332,188,46]}
+{"kind":"shape","id":"sh/1orytsvu","slide":4,"bbox":[876,214,238,178]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[896,238,44,24]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":4,"text":"回灌","textPreview":"回灌","textChars":2,"textLines":1,"bbox":[896,280,180,34]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":4,"text":"下次同类任务先把现成能力拿出来，再决定要不要重写","textPreview":"下次同类任务先把现成能力拿出来，再决定要不要重写","textChars":24,"textLines":1,"bbox":[896,332,188,46]}
+{"kind":"shape","id":"sh/1032lszq","slide":4,"bbox":[118,462,1040,82]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":4,"text":"用 `doc2md` 这件事来讲，就是：别把它拆成一堆小工具，而是让它长成一个“文档转 markdown”的成熟能力，里面保留 pdf / docx / xlsx / fallback 等分支和伤疤。","textPreview":"用 `doc2md` 这件事来讲，就是：别把它拆成一堆小工具，而是让它长成一个“文档转 markdown”的成熟能力，里面保留 pdf / docx / xlsx / fallback 等分支和伤疤。","textChars":100,"textLines":1,"bbox":[150,482,972,42]}
+{"kind":"notes","id":"nt/o9ho65","slide":4,"text":""}
+{"kind":"slide","id":"sl/xe4or9","slide":5,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":28}
+{"kind":"shape","id":"sh/36hcrmhk","slide":5,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/wra5gbq1","slide":5,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/lc7u54zi","slide":5,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":5,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/7u54zido","slide":5,"text":"5/8","textPreview":"5/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":5,"text":"愿景：终局不是个人外挂，而是项目组熟路网","textPreview":"愿景：终局不是个人外挂，而是项目组熟路网","textChars":20,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":5,"text":"同一套引擎先帮一个人，最后服务整个项目组。","textPreview":"同一套引擎先帮一个人，最后服务整个项目组。","textChars":21,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":5,"bbox":[72,208,340,336]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":5,"bbox":[96,232,140,34]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":5,"text":"先帮自己少重写","textPreview":"先帮自己少重写","textChars":7,"textLines":1,"bbox":[110,240,112,18]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":5,"text":"个人模式","textPreview":"个人模式","textChars":4,"textLines":1,"bbox":[96,286,220,36]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,350,20,20]}
+{"kind":"textbox","id":"sh/oza1gvy9","slide":5,"text":"先跑一个目的：文档转 markdown","textPreview":"先跑一个目的：文档转 markdown","textChars":19,"textLines":1,"bbox":[118,350,228,58]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,408,20,20]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":5,"text":"优先无感、低摩擦、立刻见效","textPreview":"优先无感、低摩擦、立刻见效","textChars":13,"textLines":1,"bbox":[118,408,228,58]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[96,466,20,20]}
+{"kind":"textbox","id":"sh/obm58z25","slide":5,"text":"候选能力先服务自己","textPreview":"候选能力先服务自己","textChars":9,"textLines":1,"bbox":[118,466,228,58]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":5,"bbox":[452,208,340,336]}
+{"kind":"shape","id":"sh/a9w3m94f","slide":5,"bbox":[476,232,140,34]}
+{"kind":"textbox","id":"sh/eloj2t83","slide":5,"text":"开始跨人复用","textPreview":"开始跨人复用","textChars":6,"textLines":1,"bbox":[490,240,112,18]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":5,"text":"团队模式","textPreview":"团队模式","textChars":4,"textLines":1,"bbox":[476,286,220,36]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,350,20,20]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":5,"text":"开始有 shared fixtures 和 review queue","textPreview":"开始有 shared fixtures 和 review queue","textChars":34,"textLines":1,"bbox":[498,350,228,58]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,408,20,20]}
+{"kind":"textbox","id":"sh/7u54zido","slide":5,"text":"promoted 变成团队资产","textPreview":"promoted 变成团队资产","textChars":15,"textLines":1,"bbox":[498,408,228,58]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,466,20,20]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":5,"text":"重点变成“别人能不能安全复用”","textPreview":"重点变成“别人能不能安全复用”","textChars":15,"textLines":1,"bbox":[498,466,228,58]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":5,"bbox":[832,208,340,336]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":5,"bbox":[856,232,140,34]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":5,"text":"最后蒸馏的是整组","textPreview":"最后蒸馏的是整组","textChars":8,"textLines":1,"bbox":[870,240,112,18]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":5,"text":"项目组模式","textPreview":"项目组模式","textChars":5,"textLines":1,"bbox":[856,286,220,36]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[856,350,20,20]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":5,"text":"多个团队共用一张能力网","textPreview":"多个团队共用一张能力网","textChars":11,"textLines":1,"bbox":[878,350,228,58]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[856,408,20,20]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":5,"text":"相同目的合并，不同环境保留分支","textPreview":"相同目的合并，不同环境保留分支","textChars":15,"textLines":1,"bbox":[878,408,228,58]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":5,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[856,466,20,20]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":5,"text":"手艺开始变成组织资产","textPreview":"手艺开始变成组织资产","textChars":10,"textLines":1,"bbox":[878,466,228,58]}
+{"kind":"notes","id":"nt/xe4or9","slide":5,"text":""}
+{"kind":"slide","id":"sl/vazcca","slide":6,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":25}
+{"kind":"shape","id":"sh/sji5snel","slide":6,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":6,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/adsji5sn","slide":6,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":6,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":6,"text":"6/8","textPreview":"6/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":6,"text":"唯一长得像前台的地方，大概是审查台","textPreview":"唯一长得像前台的地方，大概是审查台","textChars":17,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":6,"text":"平时无感；真要看东西时，才 pull 出一个能做决定的界面。","textPreview":"平时无感；真要看东西时，才 pull 出一个能做决定的界面。","textChars":30,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":6,"bbox":[72,188,232,370]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":6,"text":"待审队列","textPreview":"待审队列","textChars":4,"textLines":1,"bbox":[96,214,120,28]}
+{"kind":"shape","id":"sh/q1orytsv","slide":6,"bbox":[96,270,184,64]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":6,"text":"rev-014  ambiguous","textPreview":"rev-014  ambiguous","textChars":18,"textLines":1,"bbox":[110,292,156,22]}
+{"kind":"shape","id":"sh/87ed8bat","slide":6,"bbox":[96,360,184,64]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":6,"text":"rev-015  path-b pin","textPreview":"rev-015  path-b pin","textChars":19,"textLines":1,"bbox":[110,382,156,22]}
+{"kind":"shape","id":"sh/qtcj6tov","slide":6,"bbox":[96,450,184,64]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":6,"text":"rev-016  expose check","textPreview":"rev-016  expose check","textChars":21,"textLines":1,"bbox":[110,472,156,22]}
+{"kind":"shape","id":"sh/8z25kb6x","slide":6,"bbox":[338,188,474,370]}
+{"kind":"textbox","id":"sh/1gvy90je","slide":6,"text":"证据和比较","textPreview":"证据和比较","textChars":5,"textLines":1,"bbox":[366,214,180,28]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[366,272,20,20]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":6,"text":"系统建议：`same_purpose_new_branch`","textPreview":"系统建议：`same_purpose_new_branch`","textChars":30,"textLines":1,"bbox":[388,272,366,52]}
+{"kind":"textbox","id":"sh/re1w7mp0","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[366,324,20,20]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":6,"text":"目标能力：`doc-to-markdown`","textPreview":"目标能力：`doc-to-markdown`","textChars":22,"textLines":1,"bbox":[388,324,366,52]}
+{"kind":"textbox","id":"sh/9knih4by","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[366,376,20,20]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":6,"text":"旧分支：generic(markitdown fallback)","textPreview":"旧分支：generic(markitdown fallback)","textChars":32,"textLines":1,"bbox":[388,376,366,52]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[366,428,20,20]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":6,"text":"新证据：保住了 xlsx sheet 名和图片引用","textPreview":"新证据：保住了 xlsx sheet 名和图片引用","textChars":25,"textLines":1,"bbox":[388,428,366,52]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[366,480,20,20]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":6,"text":"风险：依赖更重，回归样本还不够","textPreview":"风险：依赖更重，回归样本还不够","textChars":15,"textLines":1,"bbox":[388,480,366,52]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":6,"text":"这里才是人真正“看系统”的地方。","textPreview":"这里才是人真正“看系统”的地方。","textChars":16,"textLines":1,"bbox":[366,504,388,28]}
+{"kind":"shape","id":"sh/2hwfyxob","slide":6,"bbox":[846,188,310,370]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":6,"text":"动作面板","textPreview":"动作面板","textChars":4,"textLines":1,"bbox":[874,214,160,28]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":6,"bbox":[874,274,220,50]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":6,"text":"approve new branch","textPreview":"approve new branch","textChars":18,"textLines":1,"bbox":[894,289,180,20]}
+{"kind":"shape","id":"sh/j2t83itg","slide":6,"bbox":[874,350,220,50]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":6,"text":"keep provisional","textPreview":"keep provisional","textChars":16,"textLines":1,"bbox":[894,365,180,20]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":6,"bbox":[874,426,220,50]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":6,"text":"defer for more evidence","textPreview":"defer for more evidence","textChars":23,"textLines":1,"bbox":[894,441,180,20]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":6,"text":"现在还没做，但未来最像“前台”的大概就这一页。","textPreview":"现在还没做，但未来最像“前台”的大概就这一页。","textChars":23,"textLines":1,"bbox":[874,502,214,34]}
+{"kind":"notes","id":"nt/vazcca","slide":6,"text":""}
+{"kind":"slide","id":"sl/12jo9e","slide":7,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":19}
+{"kind":"shape","id":"sh/sfil0rqd","slide":7,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":7,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/a9w3m94f","slide":7,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":7,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":7,"text":"7/8","textPreview":"7/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"textbox","id":"sh/z61032ls","slide":7,"text":"技术栈和预期效果","textPreview":"技术栈和预期效果","textChars":8,"textLines":1,"bbox":[72,64,920,56]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":7,"text":"先用最小技术栈跑通，再用最朴素的效果预期判断值不值得放大。","textPreview":"先用最小技术栈跑通，再用最朴素的效果预期判断值不值得放大。","textChars":29,"textLines":1,"bbox":[72,114,900,34]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":7,"bbox":[72,206,220,146]}
+{"kind":"textbox","id":"sh/oza1gvy9","slide":7,"text":"Capture Hook","textPreview":"Capture Hook","textChars":12,"textLines":1,"bbox":[90,236,184,32]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":7,"text":"极轻采集，只写原始事件","textPreview":"极轻采集，只写原始事件","textChars":11,"textLines":1,"bbox":[90,282,184,36]}
+{"kind":"shape","id":"sh/vu9knih4","slide":7,"bbox":[320,206,220,146]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":7,"text":"Distiller Daemon","textPreview":"Distiller Daemon","textChars":16,"textLines":1,"bbox":[338,236,184,32]}
+{"kind":"textbox","id":"sh/d0z61032","slide":7,"text":"Replay / Gate / Contract / Composer","textPreview":"Replay / Gate / Contract / Composer","textChars":35,"textLines":1,"bbox":[338,282,184,36]}
+{"kind":"shape","id":"sh/2lszqtcj","slide":7,"bbox":[568,206,220,146]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":7,"text":"MCP Sidecar","textPreview":"MCP Sidecar","textChars":11,"textLines":1,"bbox":[586,236,184,32]}
+{"kind":"textbox","id":"sh/knih4byh","slide":7,"text":"统一调用入口 + warm-start 回灌","textPreview":"统一调用入口 + warm-start 回灌","textChars":22,"textLines":1,"bbox":[586,282,184,36]}
+{"kind":"shape","id":"sh/d8bat47y","slide":7,"bbox":[832,188,324,378]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":7,"text":"内部预期效果","textPreview":"内部预期效果","textChars":6,"textLines":1,"bbox":[860,214,210,28]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":7,"text":"这不是实测宣传数据，只是内部讨论优先级的预演口径。","textPreview":"这不是实测宣传数据，只是内部讨论优先级的预演口径。","textChars":25,"textLines":1,"bbox":[860,484,232,54]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":7,"text":"判断项目值不值得继续，不看“沉淀了多少”，主要看三件事：","textPreview":"判断项目值不值得继续，不看“沉淀了多少”，主要看三件事：","textChars":28,"textLines":1,"bbox":[72,418,706,28]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[72,468,20,20]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":7,"text":"warm-start 命中后，大家是不是真的直接复用","textPreview":"warm-start 命中后，大家是不是真的直接复用","textChars":26,"textLines":1,"bbox":[94,468,648,44]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[72,512,20,20]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":7,"text":"候选能力能不能长成一个像 `doc2md` 那样的成熟目的","textPreview":"候选能力能不能长成一个像 `doc2md` 那样的成熟目的","textChars":29,"textLines":1,"bbox":[94,512,648,44]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[72,556,20,20]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":7,"text":"团队接手时，是不是真的开始少踩一遍同样的坑","textPreview":"团队接手时，是不是真的开始少踩一遍同样的坑","textChars":21,"textLines":1,"bbox":[94,556,648,44]}
+{"kind":"chart","id":"ch/fil0rqd4","slide":7,"name":"","chartType":"bar","bbox":[860,270,250,190]}
+{"kind":"notes","id":"nt/12jo9e","slide":7,"text":""}
+{"kind":"slide","id":"sl/fdr0ra","slide":8,"title":"手艺人蒸馏器 xs / light internal pre","textShapes":13}
+{"kind":"shape","id":"sh/pg3ex0nu","slide":8,"bbox":[0,0,24,720]}
+{"kind":"shape","id":"sh/epkzupwb","slide":8,"bbox":[1008,-170,390,390]}
+{"kind":"shape","id":"sh/7adsji5s","slide":8,"bbox":[1040,520,220,220]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":8,"text":"手艺人蒸馏器 xs / light internal pre","textPreview":"手艺人蒸馏器 xs / light internal pre","textChars":30,"textLines":1,"bbox":[72,24,260,18]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":8,"text":"8/8","textPreview":"8/8","textChars":3,"textLines":1,"bbox":[1140,24,68,18]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":8,"bbox":[72,92,92,34]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":8,"text":"closing","textPreview":"closing","textChars":7,"textLines":1,"bbox":[86,100,64,18]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":8,"text":"先把一个目的炼成熟路，\n再把整个项目组炼成会做事的网。","textPreview":"先把一个目的炼成熟路， | 再把整个项目组炼成会做事的网。","textChars":27,"textLines":2,"bbox":[72,152,820,150]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":8,"text":"如果这条路成立，手艺人蒸馏器最终沉淀的就不是某个人的脚本集合，而是整个项目组在真实工作里慢慢长出来的熟路资产。","textPreview":"如果这条路成立，手艺人蒸馏器最终沉淀的就不是某个人的脚本集合，而是整个项目组在真实工作里慢慢长出来的熟路资产。","textChars":55,"textLines":1,"bbox":[72,362,710,88]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":8,"bbox":[838,162,320,300]}
+{"kind":"textbox","id":"sh/oza1gvy9","slide":8,"text":"下一步只做三件事","textPreview":"下一步只做三件事","textChars":8,"textLines":1,"bbox":[866,196,240,24]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":8,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[866,248,20,20]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":8,"text":"先把文档转 markdown 这一条路跑熟","textPreview":"先把文档转 markdown 这一条路跑熟","textChars":21,"textLines":1,"bbox":[888,248,206,58]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":8,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[866,306,20,20]}
+{"kind":"textbox","id":"sh/obm58z25","slide":8,"text":"先拿到第一个真实 warm-start 命中","textPreview":"先拿到第一个真实 warm-start 命中","textChars":22,"textLines":1,"bbox":[888,306,206,58]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":8,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[866,364,20,20]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":8,"text":"再决定要不要加固到团队和项目组","textPreview":"再决定要不要加固到团队和项目组","textChars":15,"textLines":1,"bbox":[888,364,206,58]}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":8,"text":"内部一句话：把社畜踩出来的活路，精细蒸馏成下次不用重写的熟路。","textPreview":"内部一句话：把社畜踩出来的活路，精细蒸馏成下次不用重写的熟路。","textChars":31,"textLines":1,"bbox":[72,528,760,32]}
+{"kind":"notes","id":"nt/fdr0ra","slide":8,"text":""}

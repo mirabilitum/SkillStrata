@@ -1,7 +1,7 @@
-"""T0.3 — 配置加载。
+"""T0.3 — 配置加载（经 Codex M0 审核回灌）。
 
-解析链：CLI flag > env > config 文件 > 内置默认。
-judge 凭证解析链：显式 key/config > env ANTHROPIC_API_KEY > offline 模式（不假设能继承 CC 会话凭证）。
+解析链：CLI flag > env > config 文件 > 内置默认（所有项，不只 API key）。
+judge 凭证解析链：显式 key/config > env ANTHROPIC_API_KEY > provider 本地 secret store > offline。
 配置文件用极简 key=value（.env 风格），MVP 不引入 toml 依赖。
 """
 from __future__ import annotations
@@ -9,16 +9,25 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
+
+# 普通配置项的 env 变量映射（Codex P1.8）
+ENV_KEYS = {
+    "data_dir": "DISTILLER_DATA_DIR",
+    "batch_size": "DISTILLER_BATCH_SIZE",
+    "reuse_frequency_n": "DISTILLER_REUSE_FREQUENCY_N",
+    "judge_tier": "DISTILLER_JUDGE_TIER",
+    "judge_escalate_tier": "DISTILLER_JUDGE_ESCALATE_TIER",
+}
 
 
 @dataclass
 class JudgeConfig:
-    tier: str = "haiku"          # 默认便宜档
+    tier: str = "haiku"            # 默认便宜档
     escalate_tier: str = "sonnet"  # 仅 ambiguous 疑难升档
     provider: str = "anthropic"
-    api_key: str = ""            # 解析后填入；空 = offline
-    mode: str = "online"         # online | offline
+    api_key: str = ""             # 解析后填入；空 = offline
+    mode: str = "online"          # online | offline
 
 
 @dataclass
@@ -31,11 +40,25 @@ class Config:
     text_coverage_min_default: float = 0.9
 
 
-def _resolve_api_key(explicit: Optional[str], env: dict) -> tuple[str, str]:
+def _provider_secret_store(_provider: str) -> str:
+    """provider 本地 secret store 档（可替换）。默认空实现 → 落到 offline。
+    日志只允许记 provider + key hash/后4位，绝不记 key。
+    """
+    return ""
+
+
+def _resolve_api_key(
+    explicit: Optional[str], env: dict,
+    secret_resolver: Callable[[str], str] = _provider_secret_store,
+    provider: str = "anthropic",
+) -> tuple[str, str]:
     """凭证解析链。CC 登录态/订阅 ≠ 可复用 API key，故 offline 是合法终态。"""
     if explicit:
         return explicit, "online"
     key = env.get("ANTHROPIC_API_KEY", "")
+    if key:
+        return key, "online"
+    key = secret_resolver(provider)
     if key:
         return key, "online"
     return "", "offline"
@@ -61,14 +84,19 @@ def load(
     overrides: Optional[dict] = None,
     env: Optional[dict] = None,
     config_file: Optional[Path] = None,
+    secret_resolver: Callable[[str], str] = _provider_secret_store,
 ) -> Config:
     env = env if env is not None else dict(os.environ)
     overrides = overrides or {}
     file_cfg = _read_config_file(config_file)
 
     def pick(key: str, default):
+        # 解析链：override > env > file > default
         if key in overrides and overrides[key] is not None:
             return overrides[key]
+        env_key = ENV_KEYS.get(key)
+        if env_key and env.get(env_key):
+            return env[env_key]
         if key in file_cfg:
             return file_cfg[key]
         return default
@@ -79,7 +107,7 @@ def load(
     cfg.reuse_frequency_n = int(pick("reuse_frequency_n", cfg.reuse_frequency_n))
 
     explicit_key = overrides.get("api_key") or file_cfg.get("api_key")
-    key, mode = _resolve_api_key(explicit_key, env)
+    key, mode = _resolve_api_key(explicit_key, env, secret_resolver, cfg.judge.provider)
     cfg.judge.api_key = key
     cfg.judge.mode = mode
     cfg.judge.tier = pick("judge_tier", cfg.judge.tier)

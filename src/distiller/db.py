@@ -1,20 +1,27 @@
-"""T0.2 — SQLite schema（元数据 / 索引 / R_miss / lineage / 迭代轴）。
+"""T0.2 — SQLite schema（经 Codex M0 审核回灌）。
 
 设计要点：
-- candidates 用显式 `stage_rank`（整数），断点续接查询绝不用字符串字典序比较。
-- `branch_versions` = 显式迭代/版本轴（不隐含在 lineage 里，见 Codex 审核）。
+- candidates 用显式 `stage_rank`（整数）+ CHECK，断点续接绝不用字符串字典序比较。
+- `contract_signatures` = candidate/branch 级契约签名索引（M4 判同 / M6 warm-start 检索靠它）。
+- `branch_versions` = 显式迭代/版本轴，含 scope(branch/shared/skill) + snapshot_refs。
 - `usage_events` 与迭代轴分开（别拿每次调用污染年轮）。
 - 团队预留字段（created_by/visibility/dedup_key/requires_host_capability）入 schema 不驱动行为。
-- `r_miss` 作用域收紧：skill+branch+contract_slice+version+env+failure_class。
+- `r_miss` 作用域收紧：全 scope 复合索引，调用侧只允许全命中。
 """
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+from .contracts import LIFECYCLE, STAGE_RANK
 
-SCHEMA = """
+SCHEMA_VERSION = 2
+
+_STAGE_LIST = ", ".join(f"'{s}'" for s in STAGE_RANK)
+_LIFECYCLE_LIST = ", ".join(f"'{s}'" for s in LIFECYCLE)
+
+SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT
@@ -23,19 +30,42 @@ CREATE TABLE IF NOT EXISTS meta (
 CREATE TABLE IF NOT EXISTS candidates (
     id                       TEXT PRIMARY KEY,
     purpose_guess            TEXT,
-    stage                    TEXT NOT NULL DEFAULT 'discovered',
-    stage_rank               INTEGER NOT NULL DEFAULT 10,   -- 显式编号，禁字符串比较
-    lifecycle                TEXT NOT NULL DEFAULT 'raw',
+    stage                    TEXT NOT NULL DEFAULT 'discovered' CHECK(stage IN ({_STAGE_LIST})),
+    stage_rank               INTEGER NOT NULL DEFAULT 10,
+    lifecycle                TEXT NOT NULL DEFAULT 'raw' CHECK(lifecycle IN ({_LIFECYCLE_LIST})),
     determinism              TEXT NOT NULL DEFAULT 'deterministic',
+    input_profile            TEXT,
     branch_identity          TEXT,    -- json
     source_trace_ids         TEXT,    -- json
-    replay_pass              INTEGER, -- 0/1/null
+    pipeline_status          TEXT NOT NULL DEFAULT 'active',  -- active|deferred|rejected
+    deferred_reason          TEXT,    -- dependency|nondeterministic|chain|incomplete_association
+    result_status            TEXT,
+    exit_code                INTEGER,
+    context                  TEXT,    -- json {{task_id,cwd,session_id,source_ref}}
+    replay_pass              INTEGER,
     output_pass              INTEGER,
     requires_host_capability TEXT,    -- json（Q6 系统依赖搁置）
+    dedup_key                TEXT,    -- 团队预留：跨人去重
     created_by               TEXT,    -- 团队预留
-    visibility               TEXT DEFAULT 'hidden',  -- 团队预留
+    visibility               TEXT DEFAULT 'hidden',
     created_at               TEXT,
     updated_at               TEXT
+);
+
+CREATE TABLE IF NOT EXISTS contract_signatures (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type           TEXT NOT NULL,   -- candidate | branch | skill
+    entity_id             TEXT NOT NULL,
+    skill_name            TEXT,
+    branch_key            TEXT,
+    signature_hash        TEXT,
+    contract_json         TEXT,
+    behavior_signature_json TEXT,
+    branch_identity_json  TEXT,
+    purpose_embedding_ref TEXT,
+    code_evidence_ref     TEXT,
+    schema_version        INTEGER,
+    created_at            TEXT
 );
 
 CREATE TABLE IF NOT EXISTS skills (
@@ -43,8 +73,10 @@ CREATE TABLE IF NOT EXISTS skills (
     purpose     TEXT,
     when_to_use TEXT,
     contract    TEXT,    -- json
+    tags        TEXT,    -- json
     determinism TEXT DEFAULT 'deterministic',
     status      TEXT DEFAULT 'promoted',
+    host_native TEXT,    -- json
     visibility  TEXT DEFAULT 'hidden',  -- 团队预留
     created_by  TEXT,                   -- 团队预留
     dedup_key   TEXT,                   -- 团队预留：跨人去重
@@ -56,23 +88,27 @@ CREATE TABLE IF NOT EXISTS branches (
     id                       INTEGER PRIMARY KEY AUTOINCREMENT,
     skill_name               TEXT NOT NULL,
     key                      TEXT NOT NULL,
-    impl_ref                 TEXT,
+    active_impl_ref          TEXT,    -- best-of-N 只切 active
+    active_version           INTEGER DEFAULT 1,
+    retained_impls           TEXT,    -- json：全保留，不删兄弟
     is_thin_wrapper          INTEGER DEFAULT 0,
-    active                   INTEGER DEFAULT 1,   -- stable_active；ambiguous 时新实现进 provisional
     fixtures_ref             TEXT,
-    requires_host_capability TEXT,  -- json
+    requires_host_capability TEXT,    -- json
     UNIQUE(skill_name, key)
 );
 
-CREATE TABLE IF NOT EXISTS branch_versions (   -- 显式迭代/版本轴
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    skill_name   TEXT NOT NULL,
-    branch_key   TEXT,
-    version      INTEGER NOT NULL,
-    change       TEXT,
-    regression   TEXT,    -- pass|fail
-    snapshot_ref TEXT,
-    ts           TEXT
+CREATE TABLE IF NOT EXISTS branch_versions (   -- 显式迭代/版本轴（含 shared scope）
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_name      TEXT NOT NULL,
+    scope           TEXT NOT NULL DEFAULT 'branch',  -- branch|shared|skill
+    branch_key      TEXT,
+    version         INTEGER NOT NULL,
+    change          TEXT,
+    regression      TEXT,    -- pass|fail
+    regression_detail TEXT,
+    snapshot_refs   TEXT,    -- json 数组
+    ts              TEXT,
+    UNIQUE(skill_name, scope, branch_key, version)
 );
 
 CREATE TABLE IF NOT EXISTS lineage (
@@ -122,10 +158,19 @@ CREATE TABLE IF NOT EXISTS r_miss (   -- 收紧作用域，非目的级黑名单
 );
 
 CREATE INDEX IF NOT EXISTS idx_candidates_stage ON candidates(stage_rank, lifecycle);
+CREATE INDEX IF NOT EXISTS idx_candidates_dedup ON candidates(dedup_key);
+CREATE INDEX IF NOT EXISTS idx_contract_sig_hash ON contract_signatures(signature_hash);
+CREATE INDEX IF NOT EXISTS idx_contract_sig_entity ON contract_signatures(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_contract_sig_skill ON contract_signatures(skill_name, branch_key);
 CREATE INDEX IF NOT EXISTS idx_branches_skill   ON branches(skill_name);
 CREATE INDEX IF NOT EXISTS idx_usage_skill      ON usage_events(skill_name);
-CREATE INDEX IF NOT EXISTS idx_rmiss_scope      ON r_miss(skill_name, branch_key);
+CREATE INDEX IF NOT EXISTS idx_rmiss_scope
+    ON r_miss(skill_name, branch_key, contract_slice, version, env_fingerprint, failure_class);
 """
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def connect(db_file: Path | str) -> sqlite3.Connection:
@@ -149,3 +194,14 @@ def apply_schema(conn: sqlite3.Connection) -> None:
 def schema_version(conn: sqlite3.Connection) -> int:
     row = conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
     return int(row[0]) if row else 0
+
+
+def set_processing_stage(conn: sqlite3.Connection, candidate_id: str, stage: str) -> None:
+    """唯一更新入口：同步写 stage 与 stage_rank，杜绝二者漂移（Codex P2.5）。"""
+    if stage not in STAGE_RANK:
+        raise ValueError(f"unknown stage: {stage}")
+    conn.execute(
+        "UPDATE candidates SET stage=?, stage_rank=?, updated_at=? WHERE id=?",
+        (stage, STAGE_RANK[stage], _now(), candidate_id),
+    )
+    conn.commit()
