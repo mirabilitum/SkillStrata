@@ -1,0 +1,5 @@
+# 仓库内统一 LF，检出时按平台；防 CRLF 噪声
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
