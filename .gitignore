@@ -43,6 +43,5 @@ Thumbs.db
 # --- 项目特定 ---
 forcodex/
 *.txt
-!目标*.txt
 *.md
 !README.md
