@@ -39,3 +39,8 @@ reports-codex-review-*.txt
 Thumbs.db
 
 .claude/settings.local.json
+
+# --- 项目特定 ---
+forcodex/
+*.txt
+!目标*.txt
