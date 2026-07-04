@@ -20,9 +20,16 @@ from .contracts import (
 
 
 def _compute_signature_hash(sig: ContractSignature) -> str:
-    """生成 signature_hash（sha256 hex），排除自身 hash 字段避免循环。"""
+    """生成 signature_hash（sha256 hex），排除自身 hash 字段避免循环。
+
+    **不含 behavior_signature**：行为是"价值指纹"，按设计（contracts §275 /
+    契约引擎设计 §3.2、§120）只用于"目的内"的重复/迭代/薄壳判定，
+    **不参与"是不是同一分支"**。若把它算进 hash，两个行为略不同的成熟实现
+    就永远拿不到 same_branch，iteration/ambiguous 路径将不可达。
+    """
     d = to_dict(sig)
     d.pop("signature_hash", None)
+    d.pop("behavior_signature", None)  # 价值指纹不入合并 key
     raw = json.dumps(d, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 

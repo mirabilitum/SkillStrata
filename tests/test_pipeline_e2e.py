@@ -218,3 +218,207 @@ def test_e2e_identical_contract_is_duplicate(conn, tmp_path):
         "SELECT COUNT(*) FROM skills WHERE name=?", (skill_name,)
     ).fetchone()[0]
     assert count == 1
+
+
+# --------------------------------------------------------------------------- #
+# 相对路径：cwd + relative argv 走完整 pipeline（复审 P1）
+# --------------------------------------------------------------------------- #
+
+def test_e2e_relative_paths_resolve_via_cwd(conn, tmp_path):
+    """真实 trace 形态：argv/artifact 是相对路径，靠 event.cwd 归一。
+
+    此前 pipeline 用 Path(entry_ref) 直接解析，orchestrator 不在 cwd 下就全崩。
+    """
+    _write(tmp_path / "conv.py", _CONVERTER_SRC)
+    _write(tmp_path / "report.html", _INPUT_HTML)
+
+    # 关键：argv 与 artifact.path 都用**相对**名，cwd 指向 tmp_path
+    events = [
+        _exec_event(
+            task_id="t-rel",
+            cwd=str(tmp_path),
+            script_path="conv.py",
+            input_path="report.html",
+            input_media="text/html",
+            event_id="evt-rel",
+        )
+    ]
+
+    result = pipeline.run_pipeline(conn, events)
+
+    assert result.promoted_skills, (
+        f"相对路径应能走完全链，实际：{[o.__dict__ for o in result.outcomes]}"
+    )
+    assert result.outcomes[0].classification == "new_skill"
+    assert result.outcomes[0].pipeline_status == "active"
+
+
+def test_e2e_relative_system_dependency_deferred(conn, tmp_path):
+    """相对路径的系统依赖候选：gate0 仍能读到脚本里的 soffice → deferred。"""
+    _write(tmp_path / "legacy_conv.py", _LEGACY_CONVERTER_SRC)
+    _write(tmp_path / "old.doc", "placeholder")
+
+    events = [
+        _exec_event(
+            task_id="t-rel-legacy",
+            cwd=str(tmp_path),
+            script_path="legacy_conv.py",
+            input_path="old.doc",
+            input_media="application/msword",
+            event_id="evt-rel-legacy",
+        )
+    ]
+
+    result = pipeline.run_pipeline(conn, events)
+    deferred = result.by_status("deferred")
+    assert len(deferred) == 1
+    assert deferred[0].reason == "dependency"  # gate0 读到相对脚本里的 soffice
+
+
+def test_e2e_binary_input_deferred_not_falsely_rejected(conn, tmp_path):
+    """复审 P2：二进制文档（无 extractor）覆盖率不可测 → deferred，不误判 fail。
+
+    构造一个 active（无系统依赖）、但输入是 pdf 的候选：脚本能跑、打印 markdown，
+    但 pipeline 不该拿二进制 pdf 当 UTF-8 算覆盖率再 fail，而应显式 deferred。
+    """
+    # 一个不依赖系统二进制、直接打印固定 markdown 的转换器（避开 gate0 defer）
+    _write(tmp_path / "pdfconv.py", 'print("# Title\\n\\nsome extracted body text")\n')
+    (tmp_path / "doc.pdf").write_bytes(b"%PDF-1.4\x00\x01binary\xff\xfe not text")
+
+    events = [
+        _exec_event(
+            task_id="t-bin",
+            cwd=str(tmp_path),
+            script_path="pdfconv.py",
+            input_path="doc.pdf",
+            input_media="application/pdf",
+            event_id="evt-bin",
+        )
+    ]
+
+    result = pipeline.run_pipeline(conn, events)
+    o = result.outcomes[0]
+    assert o.pipeline_status == "deferred", o.__dict__
+    assert o.reason == "input_text_unmeasurable"
+    assert result.promoted_skills == []
+
+
+# --------------------------------------------------------------------------- #
+# pending / lifecycle 推进（复审 P1-pending）
+# --------------------------------------------------------------------------- #
+
+# 同一长正文（保证覆盖率/grade 相等），仅在 image vs key-value 两个可比字段上互有胜负
+_AMBIG_BODY = (
+    "Revenue grew across every region this quarter. The engineering team shipped the new pipeline "
+    "orchestrator and closed the persistence gap that had blocked end to end distillation. Customer "
+    "retention held steady near ninety percent. Next quarter we focus on reuse driven quality promotion "
+    "and warm start recall across every team and project in the whole organization this fiscal year."
+)
+# 有图片、无键值 → image_ref_coverage=1.0, key_value_rendering=False
+_CONV_IMAGE = 'print("""# Report\n\n![chart](assets/chart.png)\n\n%s\n""")\n' % _AMBIG_BODY
+# 无图片、有键值 → image_ref_coverage=0.0, key_value_rendering=True（两字段与上相反 → 不可比）
+_CONV_KV = 'print("""# Report\n\nRegion: North\nStatus: green\n\n%s\n""")\n' % _AMBIG_BODY
+
+
+def test_e2e_new_skill_promoted_not_in_pending(conn, tmp_path):
+    """成功沉淀的 new_skill → lifecycle=promoted，不出现在 pending。"""
+    from distiller import cli_pending
+    _write(tmp_path / "conv.py", _CONVERTER_SRC)
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    events = [_exec_event(task_id="t-p", cwd=str(tmp_path), script_path="conv.py",
+                          input_path="report.html", input_media="text/html", event_id="evt-p")]
+    result = pipeline.run_pipeline(conn, events)
+    assert result.promoted_skills
+
+    cid = result.outcomes[0].candidate_id
+    lc = conn.execute("SELECT lifecycle FROM candidates WHERE id=?", (cid,)).fetchone()[0]
+    assert lc == "promoted"
+    assert cid not in {r["id"] for r in cli_pending.list_pending(conn)}
+
+
+def test_e2e_output_gate_fail_rejected_not_in_pending(conn, tmp_path):
+    """Output Gate 失败 → rejected，不进 pending。"""
+    from distiller import cli_pending
+    # 转换器打印空白 → integrity fail → output_gate fail
+    _write(tmp_path / "conv.py", 'print("   ")\n')
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    events = [_exec_event(task_id="t-f", cwd=str(tmp_path), script_path="conv.py",
+                          input_path="report.html", input_media="text/html", event_id="evt-f")]
+    result = pipeline.run_pipeline(conn, events)
+    o = result.outcomes[0]
+    assert o.pipeline_status == "rejected"
+    assert cli_pending.list_pending(conn) == []
+
+
+def test_e2e_ambiguous_candidate_enters_pending(conn, tmp_path):
+    """行为不可比的同分支候选 → ambiguous → 进 pending 待人工 pin。"""
+    from distiller import cli_pending
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    _write(tmp_path / "conv_img.py", _CONV_IMAGE)
+    _write(tmp_path / "conv_kv.py", _CONV_KV)
+
+    def ev(script, task, eid):
+        return [_exec_event(task_id=task, cwd=str(tmp_path), script_path=script,
+                            input_path="report.html", input_media="text/html", event_id=eid)]
+
+    first = pipeline.run_pipeline(conn, ev("conv_img.py", "t-1", "e1"))
+    assert first.outcomes[0].classification == "new_skill"
+
+    second = pipeline.run_pipeline(conn, ev("conv_kv.py", "t-2", "e2"))
+    # 同契约 same_branch，但 image vs key-value 互有胜负 → incomparable → ambiguous
+    assert second.outcomes[0].classification == "ambiguous", second.outcomes[0].__dict__
+    assert second.outcomes[0].pipeline_status == "deferred"
+
+    pending_ids = {r["id"] for r in cli_pending.list_pending(conn)}
+    assert second.outcomes[0].candidate_id in pending_ids
+
+
+# --------------------------------------------------------------------------- #
+# 可观测性 + 幂等（复审补充 B/C/D）
+# --------------------------------------------------------------------------- #
+
+def test_e2e_pipeline_error_records_lineage_and_r_miss(conn, tmp_path, monkeypatch):
+    """单候选处理中抛异常 → rejected，且落 lineage + r_miss（可追溯，不静默）。"""
+    _write(tmp_path / "conv.py", _CONVERTER_SRC)
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    events = [_exec_event(task_id="t-err", cwd=str(tmp_path), script_path="conv.py",
+                          input_path="report.html", input_media="text/html", event_id="evt-err")]
+
+    # 强制 process_candidate 在中途抛错
+    def boom(*a, **k):
+        raise RuntimeError("injected")
+    monkeypatch.setattr(pipeline, "process_candidate", boom)
+
+    result = pipeline.run_pipeline(conn, events)
+    assert result.outcomes[0].pipeline_status == "rejected"
+    assert "injected" in result.outcomes[0].reason
+
+    lin = conn.execute("SELECT COUNT(*) FROM lineage WHERE kind='pipeline_error'").fetchone()[0]
+    rm = conn.execute("SELECT COUNT(*) FROM r_miss WHERE failure_class='crash'").fetchone()[0]
+    assert lin == 1
+    assert rm == 1
+
+
+def test_e2e_reprocess_does_not_duplicate_signatures(conn, tmp_path):
+    """同一候选重复处理 → 契约签名不叠加（幂等，复审补充 D）。"""
+    _write(tmp_path / "conv.py", _CONVERTER_SRC)
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    events = [_exec_event(task_id="t-idem", cwd=str(tmp_path), script_path="conv.py",
+                          input_path="report.html", input_media="text/html", event_id="evt-idem")]
+
+    from distiller import discovery
+    cands = discovery.discover(events)
+    assert len(cands) == 1
+    cid = cands[0].id
+
+    # 处理两次同一候选
+    pipeline.process_candidate(conn, cands[0])
+    cands2 = discovery.discover(events)
+    cands2[0].id = cid  # 同一候选 id
+    pipeline.process_candidate(conn, cands2[0])
+
+    cand_sigs = conn.execute(
+        "SELECT COUNT(*) FROM contract_signatures WHERE entity_type='candidate' AND entity_id=?",
+        (cid,),
+    ).fetchone()[0]
+    assert cand_sigs == 1  # 不叠加

@@ -108,4 +108,11 @@ python -m pytest --tb=short   # 失败时看详情
 git branch                    # mvp/m0-scaffold
 ```
 
+> **环境陷阱**：某些 Windows 运行时的系统临时目录有权限限制，会导致 pytest 在收尾清理 tmp 时报错。若遇到，把临时目录指向工作区内再跑：
+> ```powershell
+> $env:TEMP=(Resolve-Path '.').Path; $env:TMP=$env:TEMP; $env:TMPDIR=$env:TEMP
+> python -m pytest -q
+> ```
+
+
 **工程纪律：** 每个里程碑连测试一起交，运行时数据（.distiller-data/）与密钥绝不入库。去重用到的归一化（ast-grep 归一掉变量名等）只用于检测重复，入库永远是原始实现（带所有边缘处理/年轮）。

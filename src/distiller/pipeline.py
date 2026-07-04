@@ -20,8 +20,10 @@ composer 产物无落库写路径。本模块补上这根主脊：
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -71,11 +73,33 @@ class PipelineResult:
 # 单候选驱动
 # --------------------------------------------------------------------------- #
 
-def _read_code(entry_ref: str) -> str:
+def _candidate_base_dir(cand: Candidate) -> Path:
+    """候选路径的解析基准 = 原始事件的 cwd（真实 trace 里 argv 多为相对路径）。
+
+    无 context.cwd 时退回当前进程 CWD（尽力而为）。
+    """
+    if cand.context and getattr(cand.context, "cwd", ""):
+        return Path(cand.context.cwd)
+    return Path.cwd()
+
+
+def _resolve_candidate_path(cand: Candidate, raw_path: str) -> Path:
+    """把候选里的相对路径按事件 cwd 归一为绝对路径（复审 P1）。
+
+    orchestrator 通常不在原始 cwd 下运行——若不归一，gate0 读不到脚本、
+    replay 找不到输入、output_gate 覆盖率恒 0，真实候选被错误 reject。
+    """
+    p = Path(raw_path)
+    if p.is_absolute():
+        return p.resolve()
+    return (_candidate_base_dir(cand) / p).resolve()
+
+
+def _read_code(cand: Candidate) -> str:
     """读入口脚本源码供 gate0 静态扫描；读不到就空串（gate0 会宽松放行）。"""
-    if not entry_ref:
+    if not cand.entry_ref:
         return ""
-    p = Path(entry_ref)
+    p = _resolve_candidate_path(cand, cand.entry_ref)
     try:
         if p.is_file():
             return p.read_text(encoding="utf-8", errors="replace")
@@ -84,18 +108,57 @@ def _read_code(entry_ref: str) -> str:
     return ""
 
 
+# 可直接读文本测量覆盖率的输入（复审 P2：二进制文档不能当 UTF-8 文本读）。
+_TEXTUAL_MEDIA_PREFIXES = ("text/",)
+_TEXTUAL_MEDIA_TYPES = frozenset({
+    "text/plain", "text/html", "text/markdown", "application/xhtml+xml",
+    "application/json", "application/xml", "text/xml",
+})
+_TEXTUAL_EXTS = frozenset({".txt", ".html", ".htm", ".md", ".xml", ".json", ".csv"})
+
+
+def _is_textual(artifact) -> bool:
+    mt = (artifact.media_type or "").lower()
+    if mt.startswith(_TEXTUAL_MEDIA_PREFIXES) or mt in _TEXTUAL_MEDIA_TYPES:
+        return True
+    ext = Path(artifact.path).suffix.lower()
+    return ext in _TEXTUAL_EXTS
+
+
 def _input_text(cand: Candidate) -> str:
-    """取第一个输入文件的文本，供 output_gate 独立测量覆盖率（防循环）。"""
+    """取第一个**文本型**输入的文本，供 output_gate 独立测量覆盖率（防循环）。
+
+    复审 P2：PDF/DOCX/XLSX 等二进制文档不能 read_text——读出来是乱码/replacement
+    char，coverage 无意义。这类输入返回空串，由 output_gate 走"输入不可测"分支
+    （文本型 profile 输入为空 → deferred，而非无解释 fail）。
+    """
     for a in cand.input_artifacts:
-        if not a.path:
+        if not a.path or not _is_textual(a):
             continue
-        p = Path(a.path)
+        p = _resolve_candidate_path(cand, a.path)
         try:
             if p.is_file():
                 return p.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
     return ""
+
+
+# 靠图片/表格结构判定、不需要文本覆盖率的 profile（这些即使 input_text 空也能判）。
+_NON_COVERAGE_PROFILES = frozenset({"pdf_scanned", "xlsx_table"})
+
+
+def _coverage_unmeasurable(cand: Candidate, input_text: str) -> bool:
+    """判断"文本覆盖率不可测"：有输入产物、但没有可读文本、且该 profile 靠覆盖率门禁。
+
+    仅当存在二进制输入产物（无文本型可读）时成立；纯粹没有输入产物不算这里的范畴。
+    """
+    if input_text:
+        return False
+    if (cand.input_profile or "") in _NON_COVERAGE_PROFILES:
+        return False
+    has_binary_input = any(a.path and not _is_textual(a) for a in cand.input_artifacts)
+    return has_binary_input
 
 
 def process_candidate(
@@ -109,7 +172,7 @@ def process_candidate(
     每个阶段转移都 persist，落库即断点。返回结局对象。
     """
     # --- Gate0：确定性 / 系统依赖静态探测 ---
-    signals = gate0.probe_determinism(cand, _read_code(cand.entry_ref))
+    signals = gate0.probe_determinism(cand, _read_code(cand))
     cand = gate0.apply_gate0(cand, signals)
     cand.stage = "gate0_done"
     persist.upsert_candidate(conn, cand)
@@ -124,8 +187,13 @@ def process_candidate(
         )
 
     # --- Replay：沙箱重放，拿 stdout markdown ---
-    input_path = cand.input_artifacts[0].path if cand.input_artifacts else ""
-    rp = replay.replay(cand.entry_ref, input_path, timeout=replay_timeout)
+    impl_path = _resolve_candidate_path(cand, cand.entry_ref) if cand.entry_ref else ""
+    input_path = (
+        _resolve_candidate_path(cand, cand.input_artifacts[0].path)
+        if cand.input_artifacts and cand.input_artifacts[0].path
+        else ""
+    )
+    rp = replay.replay(str(impl_path), str(input_path), timeout=replay_timeout)
     replay_ok = rp.get("exit_code") == 0 and bool(rp.get("stdout_md", "").strip())
     cand.replay_pass = replay_ok
     cand.stage = "replayed"
@@ -142,7 +210,25 @@ def process_candidate(
 
     # --- Output Gate：属性验证 + behavior_signature ---
     output_md = rp.get("stdout_md", "")
-    gate_pass, behavior = output_gate.output_gate(cand, output_md, _input_text(cand))
+    input_text = _input_text(cand)
+
+    # 复审 P2：文本型 profile 靠覆盖率门禁，但输入是二进制文档（无 extractor）时
+    # input_text 为空 → 覆盖率不可测。此时显式 deferred（待接入抽取器），
+    # 不做无意义的 coverage==0 → fail 误杀。
+    if _coverage_unmeasurable(cand, input_text):
+        cand.output_pass = None
+        cand.stage = "output_gated"
+        cand.pipeline_status = "deferred"
+        cand.deferred_reason = "unmeasurable_input"
+        persist.upsert_candidate(conn, cand)
+        return CandidateOutcome(
+            candidate_id=cand.id,
+            terminal_stage=cand.stage,
+            pipeline_status="deferred",
+            reason="input_text_unmeasurable",
+        )
+
+    gate_pass, behavior = output_gate.output_gate(cand, output_md, input_text)
     cand.output_pass = gate_pass
     cand.stage = "output_gated"
     if not gate_pass:
@@ -154,10 +240,19 @@ def process_candidate(
             pipeline_status="rejected",
             reason="output_gate_failed",
         )
+    # 过 Output Gate = 已验证；lifecycle 推进到 verified，供 pending 审查队列可见
+    # （复审 P1-pending：此前恒为 raw，pending 永远空）。
+    cand.lifecycle = "verified"
+    cand.result_status = "success"
     persist.upsert_candidate(conn, cand)
 
     # --- 契约抽取 + 落 contract_signatures（判同检索靠它）---
     sig: ContractSignature = contract_extract.extract_contract(cand, behavior)
+    # 幂等（复审补充 D）：同一候选重复处理不叠加签名行——先清该候选的旧 candidate 级签名。
+    conn.execute(
+        "DELETE FROM contract_signatures WHERE entity_type='candidate' AND entity_id=?",
+        (cand.id,),
+    )
     contract_extract.store_contract(conn, "candidate", cand.id, sig)
     cand.stage = "contract_extracted"
     persist.upsert_candidate(conn, cand)
@@ -187,7 +282,6 @@ def _nearest_behavior(nearest, relation):
         if entry.get("skill_name") == target_skill and entry.get("branch_key") == target_branch:
             bj = entry.get("behavior_signature_json")
             if isinstance(bj, str) and bj:
-                import json
                 try:
                     return BehaviorSignature(**json.loads(bj))
                 except (json.JSONDecodeError, TypeError):
@@ -208,7 +302,14 @@ def _apply_decision(
     relation: dict,
     decision: str,
 ) -> CandidateOutcome:
-    """据三选一结果驱动 composer + persist。"""
+    """据三选一结果驱动 composer + persist，并推进 candidate 的 lifecycle / 可观测信号。
+
+    lifecycle 语义（复审 P1-pending + 补充 A）：
+      - new_skill/new_branch/iteration 成功 persist → lifecycle='promoted'（不进 pending）
+      - duplicate → 保持 verified（已有更优兄弟，可在 pending 被复核）
+      - ambiguous → verified + deferred(ambiguous)，进 pending 待人工 pin
+      - no_target（judge 给了 target 但 load 不到）→ 异常路径：deferred(classify_miss) + 记 lineage
+    """
     base = CandidateOutcome(
         candidate_id=cand.id,
         terminal_stage="composed",
@@ -221,6 +322,7 @@ def _apply_decision(
         manifest = composer.compose_new_skill(cand, sig, branch_key)
         persist.upsert_skill(conn, manifest)
         _store_skill_contract(conn, manifest.name, branch_key, sig)
+        cand.lifecycle = "promoted"
         base.skill_name = manifest.name
         base.branch_key = branch_key
         return base
@@ -238,6 +340,8 @@ def _apply_decision(
             composer.add_branch(manifest, cand, sig, branch_key)
             persist.upsert_skill(conn, manifest)
             _store_skill_contract(conn, manifest.name, branch_key, sig)
+            cand.lifecycle = "promoted"
+            base.classification = "new_branch"
             base.skill_name = manifest.name
             base.branch_key = branch_key
             return base
@@ -248,15 +352,46 @@ def _apply_decision(
         composer.apply_iteration(manifest, branch_key, new_impl)
         persist.upsert_skill(conn, manifest)
         _store_skill_contract(conn, manifest.name, branch_key, sig)
+        cand.lifecycle = "promoted"
+        base.classification = "iteration"
         base.skill_name = manifest.name
         base.branch_key = branch_key
         return base
 
-    # duplicate / ambiguous / 目标缺失：不改库。
-    base.pipeline_status = "active"
-    base.reason = decision if decision in ("duplicate", "ambiguous") else "no_target"
+    # --- 未沉淀成 skill 的分类：显式落信号，别静默丢 ---
+    if decision == "duplicate":
+        # 已有更优/相等兄弟：保持 verified（可在 pending 复核），不改可见状态。
+        base.reason = "duplicate"
+    elif decision == "ambiguous":
+        # 行为不可比：进 pending 待人工 pin。
+        cand.pipeline_status = "deferred"
+        cand.deferred_reason = "ambiguous"
+        base.pipeline_status = "deferred"
+        base.reason = "ambiguous"
+    else:
+        # no_target：judge 给了 target_skill 但 load 不到 manifest（数据不一致）——
+        # 异常路径，记 lineage 便于追溯（复审补充 A）。
+        cand.pipeline_status = "deferred"
+        cand.deferred_reason = "classify_miss"
+        base.pipeline_status = "deferred"
+        base.reason = "no_target"
+        _record_lineage(conn, "classify_miss", cand.id, {
+            "relation": relation.get("relation", ""),
+            "target_skill": target_skill,
+            "decision": decision,
+        })
     base.skill_name = ""
     return base
+
+
+def _record_lineage(conn: sqlite3.Connection, kind: str, subject: str, detail: dict) -> None:
+    """写一条 lineage，用于异常/降级路径的可观测性（复审补充 A/B）。"""
+    conn.execute(
+        "INSERT INTO lineage(kind, subject, detail, ts) VALUES (?, ?, ?, ?)",
+        (kind, subject, json.dumps(detail, ensure_ascii=False),
+         datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
 
 
 def _store_skill_contract(
@@ -265,7 +400,13 @@ def _store_skill_contract(
     """把契约签名以 entity_type='skill' 落库——find_nearest 只认 skill/branch。
 
     这让下一个候选能检索到已沉淀的 skill，实现判同 / 迭代闭环。
+    幂等（复审补充 D）：同 (skill, branch, signature_hash) 只留一条，避免重复处理叠加。
     """
+    conn.execute(
+        """DELETE FROM contract_signatures
+           WHERE entity_type='skill' AND entity_id=? AND branch_key=? AND signature_hash=?""",
+        (skill_name, branch_key, sig.signature_hash),
+    )
     contract_extract.store_contract(
         conn, "skill", skill_name, sig, skill_name=skill_name, branch_key=branch_key
     )
@@ -294,6 +435,13 @@ def run_pipeline(
         except Exception as exc:  # noqa: BLE001 — 单候选失败不拖垮整批
             cand.pipeline_status = "rejected"
             persist.upsert_candidate(conn, cand)
+            # 复审补充 B：异常路径落可观测信号（lineage + r_miss），别只压成字符串。
+            _record_lineage(conn, "pipeline_error", cand.id, {
+                "stage": cand.stage,
+                "error_type": type(exc).__name__,
+                "error": str(exc)[:500],
+            })
+            _record_r_miss(conn, cand, failure_class="crash")
             outcome = CandidateOutcome(
                 candidate_id=cand.id,
                 terminal_stage=cand.stage,
@@ -302,6 +450,18 @@ def run_pipeline(
             )
         result.outcomes.append(outcome)
     return result
+
+
+def _record_r_miss(conn: sqlite3.Connection, cand: Candidate, *, failure_class: str) -> None:
+    """记一条 r_miss（失败不复用黑名单，作用域收紧到 candidate 上下文）。"""
+    conn.execute(
+        """INSERT INTO r_miss
+           (skill_name, branch_key, contract_slice, version, env_fingerprint, failure_class, ts)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (cand.purpose_guess or cand.id, "", cand.input_profile or "", None, "",
+         failure_class, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
 
 
 def run_from_db(
