@@ -26,20 +26,23 @@ def _open_conn(args):
     """按 --data-dir 打开**已初始化**的数据仓库连接（严格只读，不创建任何东西）。
 
     - DB 文件不存在 → _NotInitialized
-    - DB 文件在但没有 schema（空文件 / init 中途失败 / 截断 / 非 distiller 库）
-      → 读 schema_version 会抛 sqlite3.Error（如 `no such table: meta`），
-        统一转成 _InvalidDataDir，由命令层友好报错，不 traceback（复审三次 P2-1）。
+    - DB 文件在但无效/损坏（非 SQLite 文件、空文件、init 中途失败、截断、非 distiller 库）
+      → 转成 _InvalidDataDir，由命令层友好报错，不 traceback（复审三/四次 P2-1）。
+      注意：非 SQLite 文件在 `db.connect` 内的 `PRAGMA journal_mode=WAL` 就抛 DatabaseError，
+      故 connect 也必须纳入 try，不能只包 schema_version（四次复审矩阵补齐）。
     """
     overrides = {"data_dir": args.data_dir} if args.data_dir else {}
     cfg = config.load(overrides=overrides)
     dbfile = paths.db_path(cfg.data_dir)
     if not dbfile.exists():
         raise _NotInitialized(str(cfg.data_dir))
-    conn = db.connect(dbfile)
+    conn = None
     try:
+        conn = db.connect(dbfile)
         ver = db.schema_version(conn)
     except sqlite3.Error as exc:
-        conn.close()
+        if conn is not None:
+            conn.close()
         raise _InvalidDataDir(f"{cfg.data_dir}: {exc}") from exc
     if ver == 0:
         conn.close()

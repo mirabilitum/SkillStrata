@@ -136,3 +136,23 @@ def test_read_cmd_meta_without_schema_version_fails_cleanly(tmp_path, capsys):
     assert rc != 0
     out = capsys.readouterr().out.lower()
     assert "init" in out or "无效" in out or "损坏" in out
+
+
+# --------------------------------------------------------------------------- #
+# 非 SQLite 的 meta.sqlite：db.connect 的 PRAGMA 阶段就抛 → 仍友好失败（复审四次 P2-1）
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("cmd", [["ls"], ["show", "x"], ["usage", "x"], ["pending"]])
+def test_read_cmd_non_sqlite_file_fails_cleanly(tmp_path, capsys, cmd):
+    """meta.sqlite 是普通文本文件（非 SQLite DB）→ PRAGMA journal_mode=WAL 抛
+    DatabaseError；_open_conn 把 db.connect 纳入 try 后应友好失败，不 traceback。"""
+    data_dir = tmp_path / "notdb"
+    data_dir.mkdir()
+    (data_dir / paths.DB_FILENAME).write_text("not a sqlite database\n", encoding="utf-8")
+
+    rc = cli.main(cmd + ["--data-dir", str(data_dir)])
+    assert rc != 0
+    out = capsys.readouterr().out.lower()
+    assert "init" in out or "无效" in out or "损坏" in out
+    # 只读：不覆盖坏库、不隐式重建
+    assert (data_dir / paths.DB_FILENAME).read_text(encoding="utf-8") == "not a sqlite database\n"
