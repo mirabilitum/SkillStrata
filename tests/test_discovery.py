@@ -411,11 +411,12 @@ class TestDiscover:
         assert discover([ev]) == []
 
     def test_no_candidates_when_no_md_output(self):
-        """输出非 .md → 形状不匹配 → 0 候选。"""
+        """无脚本入口 → 两域均不匹配 → 0 候选（阶段 3：generic 域会捕捉有入口的文件转换）。"""
         ev = _make_event(
-            argv=["python", "conv.py", "a.pdf"],
+            argv=[],
+            name="",
             input_artifacts=[Artifact(path="a.pdf", media_type="application/pdf")],
-            output_artifacts=[Artifact(path="a.txt")],
+            output_artifacts=[Artifact(path="a.md")],
         )
         assert discover([ev]) == []
 
