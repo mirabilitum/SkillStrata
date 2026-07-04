@@ -17,6 +17,7 @@ CONTRACTS_SCHEMA_VERSION = 1
 STAGE_RANK: dict[str, int] = {
     "discovered": 10,
     "gate0_done": 20,
+    "safety_gated": 25,
     "replayed": 30,
     "output_gated": 40,
     "contract_extracted": 50,
@@ -27,7 +28,7 @@ STAGE_RANK: dict[str, int] = {
 LIFECYCLE = ("raw", "candidate", "verified", "promoted", "deprecated", "archived")
 VISIBILITY = ("hidden", "searchable", "invokable_by_id", "mcp_exposed", "team_published")
 PIPELINE_STATUS = ("active", "deferred", "rejected")
-DEFERRED_REASON = ("dependency", "nondeterministic", "chain", "incomplete_association", "unmeasurable_input", "ambiguous", "classify_miss")
+DEFERRED_REASON = ("dependency", "nondeterministic", "chain", "incomplete_association", "unmeasurable_input", "ambiguous", "classify_miss", "safety_review")
 Determinism = Literal["deterministic", "nondeterministic", "mixed"]
 RelationLabel = Literal["same_branch", "same_purpose_new_branch", "different_purpose"]
 Classification = Literal["new_skill", "new_branch", "iteration", "duplicate", "ambiguous"]

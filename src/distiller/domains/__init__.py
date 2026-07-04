@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from .base import CapabilityDomain
 from .document_to_markdown import DocumentToMarkdownDomain
+from .generic_file_transform import GenericFileTransformDomain
 
 # 注册表：按注册顺序匹配，第一个 shape_match 命中的域胜出。
 _REGISTRY: list[CapabilityDomain] = []
@@ -46,8 +47,9 @@ def match_domain(record: dict) -> CapabilityDomain | None:
     return None
 
 
-# --- 默认注册：MVP 只有 document-to-markdown 一个域 ---
+# --- 默认注册：document-to-markdown 先（更精确的 shape_match），generic 兜底 ---
 register(DocumentToMarkdownDomain())
+register(GenericFileTransformDomain())
 
 __all__ = [
     "CapabilityDomain",

@@ -38,6 +38,7 @@ from . import (
     output_gate,
     persist,
     replay,
+    safety,
 )
 from .contracts import (
     Candidate,
@@ -184,7 +185,8 @@ def process_candidate(
     def _stages() -> CandidateOutcome:
         nonlocal cand
         # --- Gate0：确定性 / 系统依赖静态探测 ---
-        signals = gate0.probe_determinism(cand, _read_code(cand))
+        code_text = _read_code(cand)
+        signals = gate0.probe_determinism(cand, code_text)
         cand = gate0.apply_gate0(cand, signals)  # 返回 deepcopy；nonlocal 使其对外层可见
         cand.stage = "gate0_done"
         persist.upsert_candidate(conn, cand)
@@ -196,6 +198,33 @@ def process_candidate(
                 terminal_stage=cand.stage,
                 pipeline_status="deferred",
                 reason=cand.deferred_reason or "deferred",
+            )
+
+        # --- Safety Gate（阶段 3 同步落地）：扫源码防危险操作 ---
+        verdict, risks = safety.scan_and_assess(code_text)
+        if verdict == "dangerous":
+            cand.pipeline_status = "rejected"
+            cand.stage = "safety_gated"
+            persist.upsert_candidate(conn, cand)
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="rejected",
+                reason=f"safety_dangerous: {','.join(sorted(risks))}",
+            )
+        if verdict == "review":
+            cand.pipeline_status = "deferred"
+            cand.deferred_reason = "safety_review"
+            cand.stage = "safety_gated"
+            cand.requires_host_capability = sorted(
+                set(cand.requires_host_capability) | risks
+            )
+            persist.upsert_candidate(conn, cand)
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="deferred",
+                reason=f"safety_review: {','.join(sorted(risks))}",
             )
 
         # --- Replay：沙箱重放，拿 stdout markdown ---
