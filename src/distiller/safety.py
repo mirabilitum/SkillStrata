@@ -14,6 +14,7 @@ replay 和执行，不能等到 P6 才补安全。本模块做**静态扫描**�
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Literal
 
 SafetyVerdict = Literal["safe", "review", "dangerous"]
@@ -109,4 +110,86 @@ def assess(risks: set[str]) -> SafetyVerdict:
 def scan_and_assess(code_text: str) -> tuple[SafetyVerdict, set[str]]:
     """一站式：扫源码 → 判等级。返回 (verdict, risks)。"""
     risks = scan_source(code_text)
+    return assess(risks), risks
+
+
+# ---------------------------------------------------------------------------
+# Replay 期副作用审计（阶段 6：完整 Safety Gate）
+# ---------------------------------------------------------------------------
+
+def audit_file_changes(
+    file_changes: list[dict],
+    *,
+    cwd: str = "",
+    input_paths: set[str] | None = None,
+) -> tuple[SafetyVerdict, set[str]]:
+    """审计原始执行的 file_changes，检测路径逃逸、覆盖输入、写工作区外。
+
+    静态扫描看不出脚本实际动了哪些文件——这里用原始 trace 的 file_changes
+    做二次校验。不替换静态扫描，而是互补：静态挡危险调用，文件审计挡实际越界。
+
+    Parameters
+    ----------
+    file_changes : list[dict]
+        原始执行中记录的文件变更（capture 层产出）。
+    cwd : str
+        原执行的工作目录。
+    input_paths : set[str] | None
+        输入文件的绝对路径集合（用于检测覆盖输入）。
+
+    Returns
+    -------
+    tuple[SafetyVerdict, set[str]]
+    """
+    risks: set[str] = set()
+    if not file_changes:
+        return "safe", risks
+    cwd_path = (Path(cwd).resolve() if cwd else None)
+    in_paths = {Path(p).resolve() for p in (input_paths or set())}
+    import tempfile as _tempfile
+
+    for change in file_changes:
+        if not isinstance(change, dict):
+            continue
+        path_str = change.get("path", "")
+        if not path_str:
+            continue
+        try:
+            rp = Path(path_str).resolve()
+        except (OSError, ValueError):
+            risks.add("path_escape")
+            continue
+
+        # 路径逃逸：在 cwd 外且不在临时目录内
+        if cwd_path and cwd_path not in rp.parents and rp != cwd_path:
+            in_temp = False
+            for td in (_tempfile.gettempdir(),):
+                try:
+                    if Path(td).resolve() in rp.parents or rp == Path(td).resolve():
+                        in_temp = True
+                        break
+                except (OSError, ValueError):
+                    pass
+            if not in_temp:
+                # 也检查 distiller-replay- 前缀（replay 沙箱在系统 temp 下）
+                if "distiller-replay-" not in str(rp) and "pytest-" not in str(rp):
+                    risks.add("write_outside_workspace")
+
+        # 覆盖输入：change path 与某输入文件相同
+        if in_paths and rp in in_paths:
+            action = change.get("action", change.get("type", ""))
+            if action in ("modify", "write", "delete", ""):
+                risks.add("overwrite_input")
+
+        # 文件删除
+        action = change.get("action", change.get("type", ""))
+        if action in ("delete", "remove"):
+            risks.add("file_deletion")
+
+    # overwrite_input 不是 assess 内置 review 项，在此直接判定
+    if "overwrite_input" in risks:
+        # 被改输入 → review（不自动 reject，但要求人审）
+        base = assess(risks - {"overwrite_input"})
+        return "review" if base == "safe" else base, risks
+
     return assess(risks), risks

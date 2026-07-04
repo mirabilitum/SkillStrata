@@ -1,4 +1,5 @@
 """Safety 静态扫描单元测试（阶段 3 同步落地）。"""
+from pathlib import Path
 from distiller import safety
 
 
@@ -61,3 +62,49 @@ class TestScanAndAssess:
         v, r = safety.scan_and_assess("print('hello')")
         assert v == "safe"
         assert r == set()
+
+
+class TestAuditFileChanges:
+    def test_safe_empty_changes(self):
+        v, r = safety.audit_file_changes([])
+        assert v == "safe"
+
+    def test_detects_input_overwrite(self):
+        v, r = safety.audit_file_changes(
+            [{"path": "/work/input.html", "action": "modify"}],
+            cwd="/work",
+            input_paths={"/work/input.html"},
+        )
+        assert v in ("dangerous", "review")  # overwrite_input → review after removing from assess
+        assert "overwrite_input" in r
+
+    def test_detects_write_outside_workspace(self):
+        v, r = safety.audit_file_changes(
+            [{"path": "/home/user/secret.txt", "action": "write"}],
+            cwd="/work",
+        )
+        assert v == "review"
+        assert "write_outside_workspace" in r
+
+    def test_detects_file_deletion(self):
+        v, r = safety.audit_file_changes(
+            [{"path": "/work/output.tmp", "action": "delete"}],
+        )
+        assert v == "dangerous"
+        assert "file_deletion" in r
+
+    def test_safe_write_in_cwd(self):
+        v, r = safety.audit_file_changes(
+            [{"path": "/work/output.md", "action": "write"}],
+            cwd="/work",
+        )
+        assert v == "safe"
+
+    def test_safe_temp_write(self):
+        import tempfile
+        v, r = safety.audit_file_changes(
+            [{"path": str(Path(tempfile.gettempdir()) / "distiller-replay-sandbox" / "out.json"),
+              "action": "write"}],
+            cwd="/work",
+        )
+        assert v == "safe"
