@@ -170,105 +170,129 @@ def process_candidate(
     """把单个候选推过 gate0 → replay → output_gate → 契约 → 三选一 → composer。
 
     每个阶段转移都 persist，落库即断点。返回结局对象。
+
+    异常自处理（复审三次 P2-2）：阶段中途抛错时，用**推进中**的 cand 落 rejected +
+    lineage + r_miss——绝不倒退 DB 里已持久化的更高阶段状态，信号里的 stage 也是真实的。
+    内层 `_stages` 用 `nonlocal cand` 让 gate0 的 deepcopy 重绑对 except 可见。
     """
-    # --- Gate0：确定性 / 系统依赖静态探测 ---
-    signals = gate0.probe_determinism(cand, _read_code(cand))
-    cand = gate0.apply_gate0(cand, signals)
-    cand.stage = "gate0_done"
-    persist.upsert_candidate(conn, cand)
-
-    if cand.pipeline_status == "deferred":
-        # 显式搁置，不静默丢；候选留库待人审 / 环境补齐后重放。
-        return CandidateOutcome(
-            candidate_id=cand.id,
-            terminal_stage=cand.stage,
-            pipeline_status="deferred",
-            reason=cand.deferred_reason or "deferred",
-        )
-
-    # --- Replay：沙箱重放，拿 stdout markdown ---
-    impl_path = _resolve_candidate_path(cand, cand.entry_ref) if cand.entry_ref else ""
-    input_path = (
-        _resolve_candidate_path(cand, cand.input_artifacts[0].path)
-        if cand.input_artifacts and cand.input_artifacts[0].path
-        else ""
-    )
-    rp = replay.replay(str(impl_path), str(input_path), timeout=replay_timeout)
-    replay_ok = rp.get("exit_code") == 0 and bool(rp.get("stdout_md", "").strip())
-    cand.replay_pass = replay_ok
-    cand.stage = "replayed"
-    if not replay_ok:
-        cand.pipeline_status = "rejected"
+    def _stages() -> CandidateOutcome:
+        nonlocal cand
+        # --- Gate0：确定性 / 系统依赖静态探测 ---
+        signals = gate0.probe_determinism(cand, _read_code(cand))
+        cand = gate0.apply_gate0(cand, signals)  # 返回 deepcopy；nonlocal 使其对外层可见
+        cand.stage = "gate0_done"
         persist.upsert_candidate(conn, cand)
-        return CandidateOutcome(
-            candidate_id=cand.id,
-            terminal_stage=cand.stage,
-            pipeline_status="rejected",
-            reason=f"replay_failed(exit={rp.get('exit_code')})",
+
+        if cand.pipeline_status == "deferred":
+            # 显式搁置，不静默丢；候选留库待人审 / 环境补齐后重放。
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="deferred",
+                reason=cand.deferred_reason or "deferred",
+            )
+
+        # --- Replay：沙箱重放，拿 stdout markdown ---
+        impl_path = _resolve_candidate_path(cand, cand.entry_ref) if cand.entry_ref else ""
+        input_path = (
+            _resolve_candidate_path(cand, cand.input_artifacts[0].path)
+            if cand.input_artifacts and cand.input_artifacts[0].path
+            else ""
         )
-    persist.upsert_candidate(conn, cand)
+        rp = replay.replay(str(impl_path), str(input_path), timeout=replay_timeout)
+        replay_ok = rp.get("exit_code") == 0 and bool(rp.get("stdout_md", "").strip())
+        cand.replay_pass = replay_ok
+        cand.stage = "replayed"
+        if not replay_ok:
+            cand.pipeline_status = "rejected"
+            persist.upsert_candidate(conn, cand)
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="rejected",
+                reason=f"replay_failed(exit={rp.get('exit_code')})",
+            )
+        persist.upsert_candidate(conn, cand)
 
-    # --- Output Gate：属性验证 + behavior_signature ---
-    output_md = rp.get("stdout_md", "")
-    input_text = _input_text(cand)
+        # --- Output Gate：属性验证 + behavior_signature ---
+        output_md = rp.get("stdout_md", "")
+        input_text = _input_text(cand)
 
-    # 复审 P2：文本型 profile 靠覆盖率门禁，但输入是二进制文档（无 extractor）时
-    # input_text 为空 → 覆盖率不可测。此时显式 deferred（待接入抽取器），
-    # 不做无意义的 coverage==0 → fail 误杀。
-    if _coverage_unmeasurable(cand, input_text):
-        cand.output_pass = None
+        # 复审 P2：文本型 profile 靠覆盖率门禁，但输入是二进制文档（无 extractor）时
+        # input_text 为空 → 覆盖率不可测。此时显式 deferred（待接入抽取器），
+        # 不做无意义的 coverage==0 → fail 误杀。
+        if _coverage_unmeasurable(cand, input_text):
+            cand.output_pass = None
+            cand.stage = "output_gated"
+            cand.pipeline_status = "deferred"
+            cand.deferred_reason = "unmeasurable_input"
+            persist.upsert_candidate(conn, cand)
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="deferred",
+                reason="input_text_unmeasurable",
+            )
+
+        gate_pass, behavior = output_gate.output_gate(cand, output_md, input_text)
+        cand.output_pass = gate_pass
         cand.stage = "output_gated"
-        cand.pipeline_status = "deferred"
-        cand.deferred_reason = "unmeasurable_input"
+        if not gate_pass:
+            cand.pipeline_status = "rejected"
+            persist.upsert_candidate(conn, cand)
+            return CandidateOutcome(
+                candidate_id=cand.id,
+                terminal_stage=cand.stage,
+                pipeline_status="rejected",
+                reason="output_gate_failed",
+            )
+        # 过 Output Gate = 已验证；lifecycle 推进到 verified，供 pending 审查队列可见
+        # （复审 P1-pending：此前恒为 raw，pending 永远空）。
+        cand.lifecycle = "verified"
+        cand.result_status = "success"
         persist.upsert_candidate(conn, cand)
-        return CandidateOutcome(
-            candidate_id=cand.id,
-            terminal_stage=cand.stage,
-            pipeline_status="deferred",
-            reason="input_text_unmeasurable",
-        )
 
-    gate_pass, behavior = output_gate.output_gate(cand, output_md, input_text)
-    cand.output_pass = gate_pass
-    cand.stage = "output_gated"
-    if not gate_pass:
-        cand.pipeline_status = "rejected"
+        # --- 契约抽取 + 落 contract_signatures（判同检索靠它）---
+        sig: ContractSignature = contract_extract.extract_contract(cand, behavior)
+        # 幂等（复审补充 D）：同一候选重复处理不叠加签名行——先清该候选的旧 candidate 级签名。
+        conn.execute(
+            "DELETE FROM contract_signatures WHERE entity_type='candidate' AND entity_id=?",
+            (cand.id,),
+        )
+        contract_extract.store_contract(conn, "candidate", cand.id, sig)
+        cand.stage = "contract_extracted"
         persist.upsert_candidate(conn, cand)
+
+        # --- 三选一：judge_purpose → classify ---
+        nearest = contract_extract.find_nearest(conn, sig)
+        relation = classify.judge_purpose(cand, sig, nearest)
+        target_behavior = _nearest_behavior(nearest, relation)
+        decision = classify.classify(cand, sig, relation, target_behavior)
+        cand.stage = "classified"
+        persist.upsert_candidate(conn, cand)
+
+        outcome = _apply_decision(conn, cand, sig, relation, decision)
+        cand.stage = "composed"
+        persist.upsert_candidate(conn, cand)
+        return outcome
+
+    try:
+        return _stages()
+    except Exception as exc:  # noqa: BLE001 — 单候选失败不拖垮整批；用推进中的 cand 落库
+        cand.pipeline_status = "rejected"
+        persist.upsert_candidate(conn, cand)  # cand 是推进后的副本，不会倒退 stage/lifecycle
+        _record_lineage(conn, "pipeline_error", cand.id, {
+            "stage": cand.stage,
+            "error_type": type(exc).__name__,
+            "error": str(exc)[:500],
+        })
+        _record_r_miss(conn, cand, failure_class="crash")
         return CandidateOutcome(
             candidate_id=cand.id,
             terminal_stage=cand.stage,
             pipeline_status="rejected",
-            reason="output_gate_failed",
+            reason=f"pipeline_error: {type(exc).__name__}: {exc}",
         )
-    # 过 Output Gate = 已验证；lifecycle 推进到 verified，供 pending 审查队列可见
-    # （复审 P1-pending：此前恒为 raw，pending 永远空）。
-    cand.lifecycle = "verified"
-    cand.result_status = "success"
-    persist.upsert_candidate(conn, cand)
-
-    # --- 契约抽取 + 落 contract_signatures（判同检索靠它）---
-    sig: ContractSignature = contract_extract.extract_contract(cand, behavior)
-    # 幂等（复审补充 D）：同一候选重复处理不叠加签名行——先清该候选的旧 candidate 级签名。
-    conn.execute(
-        "DELETE FROM contract_signatures WHERE entity_type='candidate' AND entity_id=?",
-        (cand.id,),
-    )
-    contract_extract.store_contract(conn, "candidate", cand.id, sig)
-    cand.stage = "contract_extracted"
-    persist.upsert_candidate(conn, cand)
-
-    # --- 三选一：judge_purpose → classify ---
-    nearest = contract_extract.find_nearest(conn, sig)
-    relation = classify.judge_purpose(cand, sig, nearest)
-    target_behavior = _nearest_behavior(nearest, relation)
-    decision = classify.classify(cand, sig, relation, target_behavior)
-    cand.stage = "classified"
-    persist.upsert_candidate(conn, cand)
-
-    outcome = _apply_decision(conn, cand, sig, relation, decision)
-    cand.stage = "composed"
-    persist.upsert_candidate(conn, cand)
-    return outcome
 
 
 def _nearest_behavior(nearest, relation):
@@ -432,10 +456,10 @@ def run_pipeline(
     for cand in candidates:
         try:
             outcome = process_candidate(conn, cand, replay_timeout=replay_timeout)
-        except Exception as exc:  # noqa: BLE001 — 单候选失败不拖垮整批
-            cand.pipeline_status = "rejected"
-            persist.upsert_candidate(conn, cand)
-            # 复审补充 B：异常路径落可观测信号（lineage + r_miss），别只压成字符串。
+        except Exception as exc:  # noqa: BLE001 — 兜底：process_candidate 已自处理内部异常，
+            # 这里只接极端情况（如它本身构造失败）。绝不用调用方的旧 cand 覆盖已推进状态
+            # （复审三次 P2-2）：仅当 DB 无该候选时才 insert，有则只翻 pipeline_status。
+            _mark_rejected_no_rewind(conn, cand)
             _record_lineage(conn, "pipeline_error", cand.id, {
                 "stage": cand.stage,
                 "error_type": type(exc).__name__,
@@ -450,6 +474,23 @@ def run_pipeline(
             )
         result.outcomes.append(outcome)
     return result
+
+
+def _mark_rejected_no_rewind(conn: sqlite3.Connection, cand: Candidate) -> None:
+    """把候选标 rejected，但**绝不倒退**已持久化的更高阶段（复审三次 P2-2）。
+
+    DB 无该候选 → insert（首阶段就崩）；已有 → 只 UPDATE pipeline_status，不动 stage/lifecycle。
+    """
+    row = conn.execute("SELECT id FROM candidates WHERE id=?", (cand.id,)).fetchone()
+    if row is None:
+        cand.pipeline_status = "rejected"
+        persist.upsert_candidate(conn, cand)
+    else:
+        conn.execute(
+            "UPDATE candidates SET pipeline_status='rejected', updated_at=? WHERE id=?",
+            (datetime.now(timezone.utc).isoformat(), cand.id),
+        )
+        conn.commit()
 
 
 def _record_r_miss(conn: sqlite3.Connection, cand: Candidate, *, failure_class: str) -> None:

@@ -378,13 +378,13 @@ def test_e2e_ambiguous_candidate_enters_pending(conn, tmp_path):
 # --------------------------------------------------------------------------- #
 
 def test_e2e_pipeline_error_records_lineage_and_r_miss(conn, tmp_path, monkeypatch):
-    """单候选处理中抛异常 → rejected，且落 lineage + r_miss（可追溯，不静默）。"""
+    """process_candidate 整体失败（首阶段前就崩）→ 外层兜底 rejected + lineage + r_miss。"""
     _write(tmp_path / "conv.py", _CONVERTER_SRC)
     _write(tmp_path / "report.html", _INPUT_HTML)
     events = [_exec_event(task_id="t-err", cwd=str(tmp_path), script_path="conv.py",
                           input_path="report.html", input_media="text/html", event_id="evt-err")]
 
-    # 强制 process_candidate 在中途抛错
+    # 替换整个 process_candidate → 走 run_pipeline 外层兜底路径
     def boom(*a, **k):
         raise RuntimeError("injected")
     monkeypatch.setattr(pipeline, "process_candidate", boom)
@@ -396,6 +396,44 @@ def test_e2e_pipeline_error_records_lineage_and_r_miss(conn, tmp_path, monkeypat
     lin = conn.execute("SELECT COUNT(*) FROM lineage WHERE kind='pipeline_error'").fetchone()[0]
     rm = conn.execute("SELECT COUNT(*) FROM r_miss WHERE failure_class='crash'").fetchone()[0]
     assert lin == 1
+    assert rm == 1
+
+
+def test_e2e_mid_pipeline_error_does_not_rewind_candidate(conn, tmp_path, monkeypatch):
+    """中后段抛错（已落库到 output_gated/verified 后）→ 不倒退 stage/lifecycle（复审三次 P2-2）。"""
+    _write(tmp_path / "conv.py", _CONVERTER_SRC)
+    _write(tmp_path / "report.html", _INPUT_HTML)
+    events = [_exec_event(task_id="t-miderr", cwd=str(tmp_path), script_path="conv.py",
+                          input_path="report.html", input_media="text/html", event_id="evt-miderr")]
+
+    # 在 Output Gate 之后的契约抽取阶段抛错
+    def boom(*a, **k):
+        raise RuntimeError("mid-stage injected")
+    monkeypatch.setattr(pipeline.contract_extract, "extract_contract", boom)
+
+    result = pipeline.run_pipeline(conn, events)
+    o = result.outcomes[0]
+    assert o.pipeline_status == "rejected"
+    assert "mid-stage injected" in o.reason
+
+    row = conn.execute(
+        "SELECT stage, lifecycle, pipeline_status FROM candidates WHERE id=?",
+        (o.candidate_id,),
+    ).fetchone()
+    # 关键：DB 里是推进到的真实进度，不能倒退回 discovered/raw
+    assert row["stage"] == "output_gated"
+    assert row["lifecycle"] == "verified"
+    assert row["pipeline_status"] == "rejected"
+
+    # 信号也用推进后的 cand：lineage 的 stage 不 stale
+    lin = conn.execute(
+        "SELECT detail FROM lineage WHERE kind='pipeline_error' AND subject=?",
+        (o.candidate_id,),
+    ).fetchone()
+    assert lin is not None
+    import json as _json
+    assert _json.loads(lin["detail"])["stage"] == "output_gated"
+    rm = conn.execute("SELECT COUNT(*) FROM r_miss WHERE failure_class='crash'").fetchone()[0]
     assert rm == 1
 
 
