@@ -35,6 +35,7 @@ from . import (
     db,
     discovery,
     gate0,
+    judge,
     output_gate,
     persist,
     replay,
@@ -57,6 +58,7 @@ class CandidateOutcome:
     skill_name: str = ""
     branch_key: str = ""
     reason: str = ""                # 搁置 / 拒绝原因，便于诊断
+    judge_result: dict | None = None  # API/Rule judge 结构化输出（阶段 4）
 
 
 @dataclass
@@ -169,6 +171,7 @@ def process_candidate(
     *,
     replay_timeout: int = 30,
     data_dir: Path | None = None,
+    _judge: judge.Judge | None = None,
 ) -> CandidateOutcome:
     """把单个候选推过 gate0 → replay → output_gate → 契约 → 三选一 → composer。
 
@@ -177,6 +180,9 @@ def process_candidate(
     data_dir 非 None 时，promoted skill 的实现与 fixture 会被快照到数据目录内
     （阶段 2 Artifact Store），branches.active_impl_ref 指向 data-dir 相对路径，
     不再依赖原工作区。
+
+    _judge 非 None 时，在三选一之后用 Judge 生成结构化元数据（purpose/名称/风险），
+    不改变 merge 决策，只补充 outcome 与 context（阶段 4 API Judge）。
 
     异常自处理（复审三次 P2-2）：阶段中途抛错时，用**推进中**的 cand 落 rejected +
     lineage + r_miss——绝不倒退 DB 里已持久化的更高阶段状态，信号里的 stage 也是真实的。
@@ -306,6 +312,14 @@ def process_candidate(
         cand.stage = "classified"
         persist.upsert_candidate(conn, cand)
 
+        # --- Judge（阶段 4）：改善命名/归类/解释，不改 merge 决策 ---
+        jr: dict | None = None
+        if _judge is not None:
+            jr = _judge.judge(cand, sig)
+            # 写入 context.source_ref 供 composer/CLI 读取
+            if cand.context and hasattr(cand.context, "source_ref"):
+                cand.context.source_ref["judge"] = json.dumps(jr, ensure_ascii=False)
+
         outcome = _apply_decision(
             conn, cand, sig, relation, decision,
             data_dir=data_dir,
@@ -313,6 +327,8 @@ def process_candidate(
             input_path=str(input_path) if input_path else "",
             output_md=output_md,
         )
+        if jr is not None:
+            outcome.judge_result = jr
         cand.stage = "composed"
         persist.upsert_candidate(conn, cand)
         return outcome
@@ -524,21 +540,23 @@ def run_pipeline(
     *,
     replay_timeout: int = 30,
     data_dir: Path | None = None,
+    _judge: judge.Judge | None = None,
 ) -> PipelineResult:
     """从一批 enriched 事件跑完整条流水线，返回可断言的 PipelineResult。
 
     discovery 先把事件关联成候选，再逐个 process_candidate。
     候选按发现顺序串行处理——顺序有意义：先沉淀的 skill 是后来者的判同基线。
 
-    data_dir 非 None 时启用 Artifact Store（阶段 2）：promoted skill 的实现与
-    fixture 被快照到数据目录内，不依赖原工作区。
+    data_dir 非 None 时启用 Artifact Store（阶段 2）。
+    _judge 非 None 时启用 API/Rule Judge（阶段 4）。
     """
     candidates = discovery.discover(events)
     result = PipelineResult()
     for cand in candidates:
         try:
             outcome = process_candidate(
-                conn, cand, replay_timeout=replay_timeout, data_dir=data_dir,
+                conn, cand, replay_timeout=replay_timeout,
+                data_dir=data_dir, _judge=_judge,
             )
         except Exception as exc:  # noqa: BLE001 — 兜底：process_candidate 已自处理内部异常，
             # 这里只接极端情况（如它本身构造失败）。绝不用调用方的旧 cand 覆盖已推进状态
