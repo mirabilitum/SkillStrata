@@ -45,3 +45,8 @@ forcodex/
 *.txt
 *.md
 !README.md
+
+# --- 冒烟测试临时产物（docs/最小端到端测试任务-安装采集沉淀.md）---
+.cc-smoke/
+.demo-smoke-data/
+pytest-of-*/
