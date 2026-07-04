@@ -39,34 +39,30 @@ _MD_FENCED_CODE = re.compile(r"^```", re.MULTILINE)
 # 悬空图片引用（![] 后缺少 ()）
 _HANGING_IMG_REF_RE = re.compile(r"!\[.*?\]\s*[^(\[]")
 
+# 不可接受的控制字符（保留 \t \n \r；其余 C0 控制符 + DEL 视为破损输出）
+_BAD_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
 
 def check_integrity(output_md: str) -> bool:
-    """检查 markdown 基本合法性。
+    """检查 markdown 基本合法性（复审 P2-a：普通段落是合法 markdown）。
 
-    不做完整解析（不用 mistune），用正则验证基本结构：
-    - 至少包含一个合法 markdown 结构标记（标题/表格/图片/列表/引用/代码块/文本段落）
+    硬门禁只判"输出是不是坏的"，不判"结构化程度"（后者是 behavior 评分，不该 fail）：
+    - 非空（空 / 纯空白 → False）
     - 无悬空图片引用（`![]` 后缺少 `()`）
+    - 无不可接受的控制字符（保留 \\t \\n \\r）
 
-    空字符串或纯空白 → False。
+    结构性标记（标题/表格/列表…）是否存在 → 反映在 BehaviorSignature 里，
+    由复用价值与质量门控决定优劣，而不是在此处硬性拒绝合法正文。
     """
     if not output_md or not output_md.strip():
         return False
 
-    # 检查是否有任何 markdown 结构
-    has_structure = bool(
-        _MD_HEADING_RE.search(output_md)
-        or _MD_TABLE_RE.search(output_md)
-        or _MD_IMAGE_RE.search(output_md)
-        or _MD_LIST_RE.search(output_md)
-        or _MD_BLOCKQUOTE_RE.search(output_md)
-        or _MD_FENCED_CODE.search(output_md)
-    )
-
-    if not has_structure:
+    # 悬空图片引用 = 破损输出
+    if _HANGING_IMG_REF_RE.search(output_md):
         return False
 
-    # 检查悬空图片引用
-    if _HANGING_IMG_REF_RE.search(output_md):
+    # 不可接受的控制字符 = 破损输出
+    if _BAD_CONTROL_RE.search(output_md):
         return False
 
     return True
@@ -222,7 +218,20 @@ def _detect_key_value_rendering(md: str) -> bool:
 # ---------------------------------------------------------------------------
 
 # 硬门禁分支化阈值：按 input_profile 选主力门禁
-_COVERAGE_THRESHOLD = 0.15  # 最低文本覆盖（宁可低，不漏杀）
+_COVERAGE_THRESHOLD = 0.15  # 兜底最低文本覆盖（未知 profile；宁可低，不漏杀）
+
+# 复审 P2-b：文本型输入按 profile 分层，纯文本格式抬高覆盖底线，
+# 防"只保留摘要/开头片段"的转换器蒙混过关。图文混合格式放低（正文外还有图/表）。
+_COVERAGE_THRESHOLD_BY_PROFILE: dict[str, float] = {
+    "pdf_text": 0.80,
+    "office_docx": 0.80,
+    "html": 0.60,
+    "pptx_mixed": 0.30,   # 幻灯正文稀疏，另有图片/标题约束在 behavior 里
+}
+
+
+def _coverage_floor(profile: str) -> float:
+    return _COVERAGE_THRESHOLD_BY_PROFILE.get(profile, _COVERAGE_THRESHOLD)
 
 
 def output_gate(
@@ -302,22 +311,14 @@ def output_gate(
 
     profile = candidate.input_profile or ""
 
-    if profile == "pdf_text":
-        # 文本覆盖底线
-        gate_pass = coverage >= _COVERAGE_THRESHOLD
-    elif profile == "pdf_scanned":
-        # 至少产出图片引用
+    if profile == "pdf_scanned":
+        # 扫描件：至少产出图片引用
         gate_pass = img_count >= 1
     elif profile == "xlsx_table":
-        # 输出有表格结构标记
+        # 表格：输出有表格结构标记
         gate_pass = table_mode in ("pipe_table", "kv_list", "row_list")
-    elif profile == "pptx_mixed":
-        # 文本覆盖底线
-        gate_pass = coverage >= _COVERAGE_THRESHOLD
-    elif profile == "office_docx":
-        gate_pass = coverage >= _COVERAGE_THRESHOLD
     else:
-        # 默认：文本覆盖底线
-        gate_pass = coverage >= _COVERAGE_THRESHOLD
+        # 文本型（pdf_text / office_docx / html / pptx_mixed / 未知）：分层覆盖底线
+        gate_pass = coverage >= _coverage_floor(profile)
 
     return gate_pass, bs

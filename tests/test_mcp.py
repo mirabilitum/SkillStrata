@@ -245,6 +245,26 @@ class TestSearchCapability:
         names = {r["name"] for r in result}
         assert "code-analyzer" in names
 
+    def test_search_by_purpose_only(self, conn):
+        """复审 P1-c：只在 skills.purpose 命中、契约表不含该词的 skill 也应搜到。"""
+        conn.execute(
+            """INSERT INTO skills (name, purpose, when_to_use, status, visibility, created_at)
+               VALUES ('purpose-only', 'transcribe audio to text', '', 'promoted', 'searchable', '2026-07-04')"""
+        )
+        conn.commit()
+        names = {r["name"] for r in search_capability(conn, "transcribe")}
+        assert "purpose-only" in names
+
+    def test_search_by_when_to_use(self, conn):
+        """复审 P1-c：when_to_use 命中也应召回。"""
+        conn.execute(
+            """INSERT INTO skills (name, purpose, when_to_use, status, visibility, created_at)
+               VALUES ('wtu-skill', 'x', 'use when you need OCR on scans', 'promoted', 'searchable', '2026-07-04')"""
+        )
+        conn.commit()
+        names = {r["name"] for r in search_capability(conn, "OCR")}
+        assert "wtu-skill" in names
+
     def test_excludes_hidden(self, conn):
         """visibility=hidden 不出现在搜索结果中。"""
         result = search_capability(conn, "hidden")
@@ -431,29 +451,30 @@ class TestRecordUsage:
         assert rows[0]["warmstart_hit"] == 1
 
     def test_updates_quality_rollup(self, conn):
-        """UPSERT quality_rollup 更新计数和成功率。"""
-        # 先设一个 quality baseline
+        """UPSERT quality_rollup：reuse_count 与 success_rate 同源于 usage_events（复审 P1-d）。
+
+        fixture 预置 quality_rollup.reuse_count=3 但无对应 usage_events。
+        修复后 reuse_count 以实际 usage_events 全量重算——首次 record 后应为 1，
+        不再把陈旧聚合 (3) 与新算的 success_rate 拼在一起造成分子分母不同源。
+        """
         record_usage(conn, "code-analyzer", "python", "success")
         q = conn.execute(
             "SELECT reuse_count, success_rate FROM quality_rollup WHERE skill_name = ?",
             ("code-analyzer",),
         ).fetchone()
-        assert q["reuse_count"] == 4  # original 3 + 1
-        assert q["success_rate"] > 0  # recalculated
+        assert q["reuse_count"] == 1  # usage_events 唯一事实来源（此前会错成 4）
+        assert q["success_rate"] == 1.0  # 1 成功 / 1 总
 
     def test_tracks_failure_rate(self, conn):
-        """多次调用正确计算成功率和复用计数。"""
+        """多次调用：reuse_count 与 success_rate 均来自 usage_events 全量（复审 P1-d）。"""
         record_usage(conn, "code-analyzer", "python", "success")
         record_usage(conn, "code-analyzer", "python", "error")
         q = conn.execute(
             "SELECT reuse_count, success_rate FROM quality_rollup WHERE skill_name = ?",
             ("code-analyzer",),
         ).fetchone()
-        # original 3 + 2 new = 5 reuse_count
-        # original success count unknown from fixtures, but we can check the rate
-        assert q["reuse_count"] == 5  # 3 original + 2 new
-        # Check success_rate is between 0 and 1
-        assert 0 < q["success_rate"] < 1
+        assert q["reuse_count"] == 2   # 2 条 usage_events（不再是 3+2）
+        assert q["success_rate"] == 0.5  # 1 成功 / 2 总，与分母同源
 
     def test_first_usage_creates_rollup(self, conn):
         """新 skill 首次调用创建 quality_rollup 行。"""

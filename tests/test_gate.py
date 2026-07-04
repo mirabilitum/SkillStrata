@@ -56,8 +56,13 @@ class TestCheckIntegrity:
     def test_fails_whitespace_only(self):
         assert check_integrity("   \n  \n  ") is False
 
-    def test_fails_no_structure(self):
-        assert check_integrity("just some plain text without markdown struct.") is False
+    def test_passes_plain_paragraph(self):
+        """复审 P2-a：普通段落是合法 markdown，不该被硬门禁拒绝。"""
+        assert check_integrity("just some plain text without markdown struct.") is True
+
+    def test_fails_control_chars(self):
+        """含不可接受控制字符 → 破损输出 → False。"""
+        assert check_integrity("text with \x00 null byte") is False
 
     def test_fails_hanging_image_ref(self):
         md = "![alt]  (should not have space)\n\n![broken]"

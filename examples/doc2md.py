@@ -100,6 +100,29 @@ OLE_SIGNATURE = bytes.fromhex("D0CF11E0A1B11AE1")
 ZIP_SIGNATURE = b"PK"
 LEGACY_CONVERT_TIMEOUT = 90
 
+# 复审 P2-e：处理不可信文件的边界（zip bomb / 路径穿越 / 外部进程超时）。
+_MAX_ZIP_ENTRIES = 5000            # 条目数上限
+_MAX_ZIP_TOTAL_UNCOMPRESSED = 500 * 1024 * 1024  # 解压总大小上限 500MB
+_SOFFICE_TIMEOUT = 120             # LibreOffice 转换超时（秒）
+
+
+def _guard_zip(zf: "zipfile.ZipFile") -> None:
+    """对不可信 zip（docx/xlsx/pptx 本质是 zip）做 bomb / 穿越预检，越界即拒。"""
+    infos = zf.infolist()
+    if len(infos) > _MAX_ZIP_ENTRIES:
+        raise ValueError(f"zip 条目过多（{len(infos)} > {_MAX_ZIP_ENTRIES}）：疑似 zip bomb")
+    total = 0
+    for info in infos:
+        name = info.filename
+        # 路径穿越：绝对路径 / .. 逃逸
+        if name.startswith(("/", "\\")) or ".." in name.replace("\\", "/").split("/"):
+            raise ValueError(f"zip 含不安全路径（疑似穿越）：{name}")
+        total += info.file_size
+        if total > _MAX_ZIP_TOTAL_UNCOMPRESSED:
+            raise ValueError(
+                f"zip 解压总大小超限（> {_MAX_ZIP_TOTAL_UNCOMPRESSED} 字节）：疑似 zip bomb"
+            )
+
 
 def _detect_container_format(path: Path) -> str | None:
     try:
@@ -264,7 +287,7 @@ def convert_legacy_format(
     subprocess.run(
         [soffice, "--headless", "--convert-to", fmt_map[target_suffix],
          "--outdir", tmp_dir, str(path)],
-        check=True, capture_output=True
+        check=True, capture_output=True, timeout=_SOFFICE_TIMEOUT  # 复审 P2-e：外部进程超时
     )
     converted = Path(tmp_dir) / (path.stem + target_suffix)
     if not converted.exists():
@@ -605,6 +628,7 @@ def _repair_docx_relationships(path: Path, repaired: Path) -> Path | None:
 
     try:
         with zipfile.ZipFile(path, "r") as zin, zipfile.ZipFile(repaired, "w") as zout:
+            _guard_zip(zin)  # 复审 P2-e：bomb / 穿越预检
             members = set(zin.namelist())
             for item in zin.infolist():
                 data = zin.read(item.filename)

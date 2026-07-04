@@ -71,7 +71,7 @@ def list_promoted_skills(conn: sqlite3.Connection) -> list[dict]:
 
 
 def search_capability(conn: sqlite3.Connection, query: str) -> list[dict]:
-    """按 purpose_summary / tags / name 模糊匹配契约表，返回候选 skill 列表。
+    """按 purpose / when_to_use / tags / name / 契约摘要 模糊匹配，返回候选 skill 列表。
 
     只在 promoted 技能中搜索，排除 visibility='hidden' 的项。
     注意 promoted != exposed：搜到的技能不一定是 MCP 一等 tool。
@@ -86,13 +86,15 @@ def search_capability(conn: sqlite3.Connection, query: str) -> list[dict]:
         WHERE s.status = 'promoted'
           AND s.visibility != 'hidden'
           AND (
-              cs.contract_json LIKE ?
+              s.purpose LIKE ?
+              OR s.when_to_use LIKE ?
+              OR cs.contract_json LIKE ?
               OR s.tags LIKE ?
               OR s.name LIKE ?
           )
         ORDER BY s.name
         """,
-        (like, like, like),
+        (like, like, like, like, like),
     ).fetchall()
     return [_parse_skill_row(dict(r)) for r in rows]
 

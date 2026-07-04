@@ -28,6 +28,23 @@ from pathlib import Path
 _REPLAY_TIMEOUT_SEC = 30
 
 
+def _resolve_sandbox_cwd(sandbox_root: Path, cwd: str | None) -> Path:
+    """把 cwd 收敛到沙箱内（复审 P2-c）。
+
+    - cwd=None → 用沙箱根（默认隔离）。
+    - cwd 给定 → resolve 后必须位于 sandbox_root 之内，否则拒绝，绝不在工作区里跑候选。
+    """
+    if cwd is None:
+        return sandbox_root
+    resolved = Path(cwd).resolve()
+    root = sandbox_root.resolve()
+    if resolved != root and root not in resolved.parents:
+        raise ValueError(
+            f"replay cwd 必须在沙箱内（{root}），拒绝外部路径：{resolved}"
+        )
+    return resolved
+
+
 def replay(
     impl_path: str,
     input_path: str,
@@ -46,8 +63,8 @@ def replay(
     timeout : int
         子进程超时秒数（默认 30）。
     cwd : str | None
-        可选的工作目录（用于定位依赖，默认 None=使用 impl_path 所在目录；
-        MVP 暂不使用，保留供将来 uv venv 隔离场景使用）。
+        可选工作目录，**必须位于沙箱内**（复审 P2-c 收紧）。默认 None=沙箱根。
+        传入沙箱外路径会被拒绝（ValueError），杜绝候选脚本在工作区读写。
 
     Returns
     -------
@@ -81,12 +98,15 @@ def replay(
         shutil.copy2(str(impl_path), str(impl_copy))
         shutil.copy2(str(input_path), str(input_copy))
 
+        # 复审 P2-c：cwd 必须落在沙箱内，禁止调用方传入工作区路径破坏隔离。
+        run_cwd = _resolve_sandbox_cwd(sandbox_root, cwd)
+
         # 2. 运行脚本
         start = time.perf_counter()
         try:
             proc = subprocess.run(
                 [sys.executable, str(impl_copy), str(input_copy)],
-                cwd=str(sandbox_root) if cwd is None else str(cwd),
+                cwd=str(run_cwd),
                 capture_output=True,
                 text=True,
                 timeout=timeout,

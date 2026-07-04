@@ -162,7 +162,8 @@ def record_usage(
 ) -> None:
     """INSERT usage_events + UPSERT quality_rollup（原子事务）。
 
-    成功率和复用计数按实际 usage_events 统计。
+    成功率和复用计数都以 usage_events 为唯一事实来源、每次全量重算，
+    确保 reuse_count（分母）与 success_rate（分子）同源，不背离（复审 P1-d）。
     """
     now = _now()
     conn.execute(
@@ -188,12 +189,12 @@ def record_usage(
     conn.execute(
         """
         INSERT INTO quality_rollup (skill_name, reuse_count, success_rate, last_used)
-        VALUES (?, 1, ?, ?)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(skill_name) DO UPDATE SET
-            reuse_count = reuse_count + 1,
+            reuse_count = ?,
             success_rate = ?,
             last_used = ?
         """,
-        (skill_name, rate, now, rate, now),
+        (skill_name, total, rate, now, total, rate, now),
     )
     conn.commit()

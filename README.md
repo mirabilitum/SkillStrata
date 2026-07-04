@@ -2,7 +2,7 @@
 
 > **无感蒸馏可复用工具库。** 从 Claude Code 代理的真实执行轨迹中，自动发现、验证、合并、沉淀程序类可复用能力，以 MCP 工具形式回灌给后续任务——让"上次写过的那个转换脚本"下次自动出现，不再重搓。
 
-MVP 阶段：团队版去风险原型。337 tests / 12 modules，纯 Python，文档转 Markdown 域。
+MVP 阶段：团队版去风险原型。纯 Python，文档转 Markdown 域，测试随里程碑增长（`python -m pytest -q` 看当前数）。
 
 ---
 
@@ -86,21 +86,26 @@ src/distiller/
   output_gate.py      # M3 属性验证（守恒 oracle）+ behavior_signature
   contract_extract.py # M4 契约抽取（I/O 锚 + 代码佐证 + 目的嵌入）
   classify.py         # M4+M5：目的判同 + 三选一（新工具/新分支/迭代）
-  composer.py         # M5 沉淀：分支/active/retained/共享后处理
+  composer.py         # M5 沉淀（内存）：分支/active/retained/共享后处理
+  persist.py          # 落库写路径：SkillManifest/Branch/Candidate → SQLite
+  pipeline.py         # orchestrator：把各阶段焊成一条线 + 三选一驱动 composer
   mcp_server.py       # M6 MCP 暴露（promoted≠exposed）
   warmstart.py        # M6 回灌 + R_miss 检查
   observe.py          # M7a 只读观测（pull）：ls/show/usage/failures
   review.py           # M7b 审查 + 质量门控自动升级
+  cli.py              # init + ls/show/usage/pending 子命令
 ```
+
+> 参考实现 `examples/doc2md.py`（设计的"尺子"，不属包、不接 pipeline，见 `examples/README.md`）。
 
 ---
 
 ## 开发
 
 ```bash
-python -m pytest -q          # 337 tests
+python -m pytest -q           # 跑全部测试（数量随里程碑增长，不写死）
 python -m pytest --tb=short   # 失败时看详情
-git branch                   # mvp/m0-scaffold
+git branch                    # mvp/m0-scaffold
 ```
 
 **工程纪律：** 每个里程碑连测试一起交，运行时数据（.distiller-data/）与密钥绝不入库。去重用到的归一化（ast-grep 归一掉变量名等）只用于检测重复，入库永远是原始实现（带所有边缘处理/年轮）。
