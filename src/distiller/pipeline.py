@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import (
+    artifact_store,
     classify,
     composer,
     contract_extract,
@@ -166,10 +167,15 @@ def process_candidate(
     cand: Candidate,
     *,
     replay_timeout: int = 30,
+    data_dir: Path | None = None,
 ) -> CandidateOutcome:
     """把单个候选推过 gate0 → replay → output_gate → 契约 → 三选一 → composer。
 
     每个阶段转移都 persist，落库即断点。返回结局对象。
+
+    data_dir 非 None 时，promoted skill 的实现与 fixture 会被快照到数据目录内
+    （阶段 2 Artifact Store），branches.active_impl_ref 指向 data-dir 相对路径，
+    不再依赖原工作区。
 
     异常自处理（复审三次 P2-2）：阶段中途抛错时，用**推进中**的 cand 落 rejected +
     lineage + r_miss——绝不倒退 DB 里已持久化的更高阶段状态，信号里的 stage 也是真实的。
@@ -271,7 +277,13 @@ def process_candidate(
         cand.stage = "classified"
         persist.upsert_candidate(conn, cand)
 
-        outcome = _apply_decision(conn, cand, sig, relation, decision)
+        outcome = _apply_decision(
+            conn, cand, sig, relation, decision,
+            data_dir=data_dir,
+            impl_path=str(impl_path) if impl_path else "",
+            input_path=str(input_path) if input_path else "",
+            output_md=output_md,
+        )
         cand.stage = "composed"
         persist.upsert_candidate(conn, cand)
         return outcome
@@ -325,8 +337,17 @@ def _apply_decision(
     sig: ContractSignature,
     relation: dict,
     decision: str,
+    *,
+    data_dir: Path | None = None,
+    impl_path: str = "",
+    input_path: str = "",
+    output_md: str = "",
 ) -> CandidateOutcome:
     """据三选一结果驱动 composer + persist，并推进 candidate 的 lifecycle / 可观测信号。
+
+    data_dir 非 None 时，在 persist 前把实现脚本 + fixture 快照到数据目录
+    （阶段 2 Artifact Store），branches.active_impl_ref 指向 data-dir 相对路径，
+    不再依赖原工作区。
 
     lifecycle 语义（复审 P1-pending + 补充 A）：
       - new_skill/new_branch/iteration 成功 persist → lifecycle='promoted'（不进 pending）
@@ -341,9 +362,30 @@ def _apply_decision(
         classification=decision,
     )
 
+    def _snapshot(manifest, branch):
+        """尝试快照；失败不阻断主链（artifact_store 是增强，不是门禁）。"""
+        if data_dir is None or not impl_path or not Path(impl_path).is_file():
+            return
+        try:
+            new_impl, new_fix = artifact_store.snapshot_promoted(
+                data_dir,
+                manifest.name,
+                branch.key,
+                branch.active_version,
+                impl_path=impl_path,
+                input_fixture_path=input_path if input_path and Path(input_path).is_file() else None,
+                output_text=output_md if output_md else None,
+            )
+            branch.active_impl_ref = new_impl
+            branch.fixtures_ref = new_fix
+        except OSError:
+            pass  # 快照失败不影响 promote 本身
+
     if decision == "new_skill":
         branch_key = _branch_key_for(cand, sig)
         manifest = composer.compose_new_skill(cand, sig, branch_key)
+        if manifest.branches:
+            _snapshot(manifest, manifest.branches[0])
         persist.upsert_skill(conn, manifest)
         _store_skill_contract(conn, manifest.name, branch_key, sig)
         cand.lifecycle = "promoted"
@@ -362,6 +404,9 @@ def _apply_decision(
             decision = "iteration"
         else:
             composer.add_branch(manifest, cand, sig, branch_key)
+            new_b = next((b for b in manifest.branches if b.key == branch_key), None)
+            if new_b:
+                _snapshot(manifest, new_b)
             persist.upsert_skill(conn, manifest)
             _store_skill_contract(conn, manifest.name, branch_key, sig)
             cand.lifecycle = "promoted"
@@ -374,6 +419,10 @@ def _apply_decision(
         branch_key = relation.get("target_branch", "") or _branch_key_for(cand, sig)
         new_impl = cand.code_snapshot_ref or cand.entry_ref or ""
         composer.apply_iteration(manifest, branch_key, new_impl)
+        # 迭代后取更新后的版本号
+        updated_b = next((b for b in manifest.branches if b.key == branch_key), None)
+        if updated_b:
+            _snapshot(manifest, updated_b)
         persist.upsert_skill(conn, manifest)
         _store_skill_contract(conn, manifest.name, branch_key, sig)
         cand.lifecycle = "promoted"
@@ -445,17 +494,23 @@ def run_pipeline(
     events: list[EnrichedToolEvent],
     *,
     replay_timeout: int = 30,
+    data_dir: Path | None = None,
 ) -> PipelineResult:
     """从一批 enriched 事件跑完整条流水线，返回可断言的 PipelineResult。
 
     discovery 先把事件关联成候选，再逐个 process_candidate。
     候选按发现顺序串行处理——顺序有意义：先沉淀的 skill 是后来者的判同基线。
+
+    data_dir 非 None 时启用 Artifact Store（阶段 2）：promoted skill 的实现与
+    fixture 被快照到数据目录内，不依赖原工作区。
     """
     candidates = discovery.discover(events)
     result = PipelineResult()
     for cand in candidates:
         try:
-            outcome = process_candidate(conn, cand, replay_timeout=replay_timeout)
+            outcome = process_candidate(
+                conn, cand, replay_timeout=replay_timeout, data_dir=data_dir,
+            )
         except Exception as exc:  # noqa: BLE001 — 兜底：process_candidate 已自处理内部异常，
             # 这里只接极端情况（如它本身构造失败）。绝不用调用方的旧 cand 覆盖已推进状态
             # （复审三次 P2-2）：仅当 DB 无该候选时才 insert，有则只翻 pipeline_status。
@@ -511,10 +566,17 @@ def run_from_db(
     *,
     replay_timeout: int = 30,
 ) -> PipelineResult:
-    """便捷入口：自开连接、建 schema、跑流水线、关连接。"""
-    conn = db.connect(db_path)
+    """便捷入口：自开连接、建 schema、跑流水线、关连接。
+
+    从 db_path 父目录推导 data_dir，启用 Artifact Store（阶段 2）。
+    """
+    dbp = Path(db_path)
+    conn = db.connect(dbp)
     try:
         db.apply_schema(conn)
-        return run_pipeline(conn, events, replay_timeout=replay_timeout)
+        return run_pipeline(
+            conn, events, replay_timeout=replay_timeout,
+            data_dir=dbp.parent,
+        )
     finally:
         conn.close()
