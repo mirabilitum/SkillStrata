@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import uuid
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 from distiller.contracts import (
     Artifact,
@@ -326,10 +326,19 @@ def is_noise(record: dict[str, Any]) -> bool:
 # discover: 串起来，产出 Candidate
 # ---------------------------------------------------------------------------
 
+def _match_domain_for_record(record: dict[str, Any]) -> Optional[Any]:
+    """懒 import 域注册表避免循环导入；返回命中的域或 None。"""
+    from distiller import domains as _domains_lazy  # noqa：顶层 import 会形成环
+    return _domains_lazy.match_domain(record)
+
+
 def discover(events: list[EnrichedToolEvent]) -> list[Candidate]:
     """候选发现主入口：correlate → 噪声预过滤 → 形状过滤 → 产出 Candidate(raw)。
 
     高召回：形状中且非噪声就提名。价值判断全部下放到下游 Gate。
+
+    阶段 1（domain adapter）：先走 domain registry 分配 purpose/profile，
+    registry 无命中时退守旧硬编码（保持向后兼容，不丢候选）。
     """
     records = correlate(events)
     candidates: list[Candidate] = []
@@ -338,16 +347,36 @@ def discover(events: list[EnrichedToolEvent]) -> list[Candidate]:
         # 廉价噪声剔除先跑（更便宜）
         if is_noise(record):
             continue
-        # 形状匹配
-        if not shape_match(record):
+        # 形状匹配：先走 domain registry，命中则用该域的 purpose/profile；
+        # registry 无命中时退守旧硬编码（向后兼容，不丢候选）。
+        domain = _match_domain_for_record(record)
+        if domain is not None:
+            fits = domain.shape_match(record)
+        else:
+            fits = shape_match(record)  # 旧硬编码 shape，测试直接调用此函数不受影响
+        if not fits:
             continue
 
         input_artifacts: list[Artifact] = record["input_artifacts"]
-        input_profile = _guess_input_profile(input_artifacts)
+        input_profile = (
+            domain.guess_input_profile(input_artifacts)
+            if domain is not None
+            else _guess_input_profile(input_artifacts)
+        )
+        purpose_guess = (
+            domain.purpose_guess(record)
+            if domain is not None
+            else "document-to-markdown"
+        )
+
+        # 把命中的域记进 context.source_ref，不改冻结 schema（演进评估 §三）。
+        context: ExecContext = record["context"]
+        if domain is not None:
+            context.source_ref["domain"] = domain.name
 
         cand = Candidate(
             id=f"cand-{uuid.uuid4().hex[:8]}",
-            purpose_guess="document-to-markdown",
+            purpose_guess=purpose_guess,
             entry_kind=record["entry_kind"],
             entry_ref=record["entry_ref"],
             argv=record["argv"],
@@ -359,7 +388,7 @@ def discover(events: list[EnrichedToolEvent]) -> list[Candidate]:
             pipeline_status="active",
             result_status=record["result_status"],
             exit_code=record["exit_code"],
-            context=record["context"],
+            context=context,
             source_trace_ids=record["source_trace_ids"],
         )
         candidates.append(cand)
