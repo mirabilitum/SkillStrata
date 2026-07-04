@@ -2,7 +2,7 @@
 
 > **无感蒸馏可复用工具库。** 从 Claude Code 代理的真实执行轨迹中，自动发现、验证、合并、沉淀程序类可复用能力，以 MCP 工具形式回灌给后续任务——让"上次写过的那个转换脚本"下次自动出现，不再重搓。
 
-MVP 阶段：团队版去风险原型。纯 Python，文档转 Markdown 域，测试随里程碑增长（`python -m pytest -q` 看当前数）。
+当前阶段：团队版去风险原型 → **个人通用版 file-transform MVP（L1）**。纯 Python，覆盖文档转换 + 通用文件转换（CSV↔JSON、text↔md 等），含 domain adapter、artifact store、API judge、safety gate、episode builder、hook+daemon 七阶段全链路。测试随里程碑增长（`python -m pytest -q` 看当前数，当前 >400）。
 
 ---
 
@@ -80,20 +80,32 @@ src/distiller/
   contracts.py        # 冻结接口——所有模块共享
   capture.py          # M1 采集：hook 极轻事件
   enrich.py           # M1 daemon 补全（hash/media_type/确定性信号）
-  discovery.py        # M2 候选发现：关联→形状过滤→提名
+  discovery.py        # M2 候选发现：关联→形状过滤→提名（委托给 domain）
   gate0.py            # M2 确定性探测 + 系统二进制检测（显式搁置，不静默丢）
+  safety.py           # 安全门：静态源码扫描 + 文件变更审计（免危险脚本 promoted）
   replay.py           # M3 沙箱重放（uv venv + temp 隔离）
   output_gate.py      # M3 属性验证（守恒 oracle）+ behavior_signature
   contract_extract.py # M4 契约抽取（I/O 锚 + 代码佐证 + 目的嵌入）
   classify.py         # M4+M5：目的判同 + 三选一（新工具/新分支/迭代）
   composer.py         # M5 沉淀（内存）：分支/active/retained/共享后处理
   persist.py          # 落库写路径：SkillManifest/Branch/Candidate → SQLite
+  artifact_store.py   # 实现快照：promoted skill 的 impl+fixture 复制到 data-dir
   pipeline.py         # orchestrator：把各阶段焊成一条线 + 三选一驱动 composer
+  judge.py            # Judge（Rule + LLM 双实现）：改善命名/归类/解释
+  episode.py          # Episode Builder：长链条任务识别最终可复用能力
   mcp_server.py       # M6 MCP 暴露（promoted≠exposed）
   warmstart.py        # M6 回灌 + R_miss 检查
   observe.py          # M7a 只读观测（pull）：ls/show/usage/failures
   review.py           # M7b 审查 + 质量门控自动升级
+  hook.py             # CC PostToolUse hook：极轻事件写入（<5ms，append-only）
+  daemon.py           # 异步 daemon：读 traces→enrich→pipeline→落库（断点续跑）
   cli.py              # init + ls/show/usage/pending 子命令
+  config.py           # 配置链：CLI flag > env > config 文件 > 默认
+
+  domains/            # Domain Adapter 层（可插拔能力域）
+    base.py               # CapabilityDomain 协议（收窄版）
+    document_to_markdown.py  # 文档→MD 域（doc/docx/pdf/html→markdown）
+    generic_file_transform.py  # 通用文件转换域（CSV↔JSON, text↔md 等）
 ```
 
 > 参考实现 `examples/doc2md.py`（设计的"尺子"，不属包、不接 pipeline，见 `examples/README.md`）。
