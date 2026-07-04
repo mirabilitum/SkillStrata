@@ -621,6 +621,35 @@ class TestListPending:
         assert result == []
         c.close()
 
+    def test_excludes_rejected_pipeline_status(self, conn):
+        """复审四次 P2-2：verified+success 但 pipeline_status='rejected'（中后段失败）
+        不得进入 pending。"""
+        conn.execute(
+            """INSERT INTO candidates
+                   (id, purpose_guess, stage, stage_rank, lifecycle,
+                    result_status, pipeline_status, determinism, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("cand-rejected-verified", "doc-to-markdown", "output_gated", 40,
+             "verified", "success", "rejected", "deterministic", "2026-07-04T00:00:00Z"),
+        )
+        conn.commit()
+        ids = {r["id"] for r in list_pending(conn)}
+        assert "cand-rejected-verified" not in ids
+
+    def test_includes_deferred_ambiguous(self, conn):
+        """deferred（ambiguous 待人工 pin）仍应进入 pending。"""
+        conn.execute(
+            """INSERT INTO candidates
+                   (id, purpose_guess, stage, stage_rank, lifecycle,
+                    result_status, pipeline_status, deferred_reason, determinism, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("cand-ambiguous", "doc-to-markdown", "composed", 80,
+             "verified", "success", "deferred", "ambiguous", "deterministic", "2026-07-04T00:00:01Z"),
+        )
+        conn.commit()
+        ids = {r["id"] for r in list_pending(conn)}
+        assert "cand-ambiguous" in ids
+
 
 # --------------------------------------------------------------------------- #
 # get_review（cli_pending）

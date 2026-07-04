@@ -9,10 +9,15 @@ import sqlite3
 
 
 def list_pending(conn: sqlite3.Connection) -> list[dict]:
-    """列出所有待审查的候选（已过验证但未 promoted）。
+    """列出所有待审查的候选（已过验证但未 promoted，且未被 rejected）。
 
-    返回 candidates WHERE lifecycle='verified' AND result_status='success'。
-    不暴露 ambiguous（那个在 observe 的 show_skill 里展示）。
+    返回 candidates WHERE lifecycle='verified' AND result_status='success'
+    AND pipeline_status IN ('active','deferred')。
+
+    pending 是审查层语义，须显式排除 rejected（复审四次 P2-2）：中后段异常后
+    candidate 可能停在 verified/success/rejected（stage/lifecycle 不倒退），
+    若不过滤 pipeline_status，这类失败候选会污染待审队列。
+    保留 duplicate（active，可复核）与 ambiguous（deferred，待人工 pin）。
 
     Returns:
         list[dict]: 每个 dict 含候选基本字段。
@@ -24,6 +29,7 @@ def list_pending(conn: sqlite3.Connection) -> list[dict]:
         FROM candidates
         WHERE lifecycle = 'verified'
           AND result_status = 'success'
+          AND pipeline_status IN ('active', 'deferred')
         ORDER BY created_at
     """).fetchall()
     return [dict(r) for r in rows]

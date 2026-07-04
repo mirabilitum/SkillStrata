@@ -436,6 +436,11 @@ def test_e2e_mid_pipeline_error_does_not_rewind_candidate(conn, tmp_path, monkey
     rm = conn.execute("SELECT COUNT(*) FROM r_miss WHERE failure_class='crash'").fetchone()[0]
     assert rm == 1
 
+    # 复审四次 P2-2：verified/success/rejected 组合不得进入 pending 待审队列
+    from distiller import cli_pending
+    pending_ids = {r["id"] for r in cli_pending.list_pending(conn)}
+    assert o.candidate_id not in pending_ids
+
 
 def test_e2e_reprocess_does_not_duplicate_signatures(conn, tmp_path):
     """同一候选重复处理 → 契约签名不叠加（幂等，复审补充 D）。"""
