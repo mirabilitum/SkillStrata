@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from typing import Optional
 
 from . import cli_pending, config, db, observe, paths
@@ -17,11 +18,17 @@ class _NotInitialized(Exception):
     """数据目录未初始化——只读命令不应隐式建库（复审 P2）。"""
 
 
+class _InvalidDataDir(Exception):
+    """数据目录里有 DB 文件但无效/损坏（空文件、截断、非 distiller schema）。"""
+
+
 def _open_conn(args):
     """按 --data-dir 打开**已初始化**的数据仓库连接（严格只读，不创建任何东西）。
 
-    未初始化时抛 _NotInitialized，由命令层转成友好报错 + 非零退出，
-    不再隐式 ensure_layout/建空库导致后续 `no such table`。
+    - DB 文件不存在 → _NotInitialized
+    - DB 文件在但没有 schema（空文件 / init 中途失败 / 截断 / 非 distiller 库）
+      → 读 schema_version 会抛 sqlite3.Error（如 `no such table: meta`），
+        统一转成 _InvalidDataDir，由命令层友好报错，不 traceback（复审三次 P2-1）。
     """
     overrides = {"data_dir": args.data_dir} if args.data_dir else {}
     cfg = config.load(overrides=overrides)
@@ -29,18 +36,26 @@ def _open_conn(args):
     if not dbfile.exists():
         raise _NotInitialized(str(cfg.data_dir))
     conn = db.connect(dbfile)
-    if db.schema_version(conn) == 0:
+    try:
+        ver = db.schema_version(conn)
+    except sqlite3.Error as exc:
+        conn.close()
+        raise _InvalidDataDir(f"{cfg.data_dir}: {exc}") from exc
+    if ver == 0:
         conn.close()
         raise _NotInitialized(str(cfg.data_dir))
     return conn
 
 
 def _run_read(args, fn) -> int:
-    """只读命令统一入口：处理未初始化错误。fn(conn) 返回要 _emit 的对象。"""
+    """只读命令统一入口：处理未初始化 / 损坏错误。fn(conn) 返回要 _emit 的对象。"""
     try:
         conn = _open_conn(args)
     except _NotInitialized as e:
         print(f"数据目录未初始化：{e}. 先运行 distiller init")
+        return 2
+    except _InvalidDataDir as e:
+        print(f"数据目录无效或损坏：{e}. 请重新运行 distiller init 或更换 --data-dir")
         return 2
     try:
         return fn(conn)

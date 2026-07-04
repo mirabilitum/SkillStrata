@@ -100,3 +100,39 @@ def test_read_cmd_uninitialized_fails_cleanly(tmp_path, capsys, cmd):
     # 严格只读：不应隐式创建数据目录或空库
     from pathlib import Path
     assert not Path(missing).exists()
+
+
+# --------------------------------------------------------------------------- #
+# 已存在但损坏/未初始化的 DB 文件：仍友好失败，不 traceback（复审三次 P2-1）
+# --------------------------------------------------------------------------- #
+
+import sqlite3
+from pathlib import Path
+
+
+@pytest.mark.parametrize("cmd", [["ls"], ["show", "x"], ["usage", "x"], ["pending"]])
+def test_read_cmd_empty_db_file_fails_cleanly(tmp_path, capsys, cmd):
+    """meta.sqlite 存在但是空文件（无 meta 表）→ 友好失败，不抛 sqlite OperationalError。"""
+    data_dir = tmp_path / "bad"
+    data_dir.mkdir()
+    sqlite3.connect(str(data_dir / paths.DB_FILENAME)).close()  # 空库，无 schema
+
+    rc = cli.main(cmd + ["--data-dir", str(data_dir)])
+    assert rc != 0
+    out = capsys.readouterr().out.lower()
+    assert "init" in out or "无效" in out or "损坏" in out
+
+
+def test_read_cmd_meta_without_schema_version_fails_cleanly(tmp_path, capsys):
+    """meta 表存在但没有 schema_version 行 → schema_version()==0 → 友好失败。"""
+    data_dir = tmp_path / "half"
+    data_dir.mkdir()
+    conn = sqlite3.connect(str(data_dir / paths.DB_FILENAME))
+    conn.execute("CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT)")
+    conn.commit()
+    conn.close()
+
+    rc = cli.main(["ls", "--data-dir", str(data_dir)])
+    assert rc != 0
+    out = capsys.readouterr().out.lower()
+    assert "init" in out or "无效" in out or "损坏" in out
