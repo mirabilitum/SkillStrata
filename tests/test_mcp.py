@@ -336,6 +336,24 @@ class TestRunCapability:
         result = run_capability(conn, "doc-to-markdown", file="test.pdf")
         assert result["inputs"] == {"file": "test.pdf"}
 
+    def test_excludes_hidden(self, conn):
+        """复审 P2：hidden skill 不通过 run_capability 暴露（含 impl_ref）。"""
+        assert run_capability(conn, "hidden-skill") == {}
+
+    def test_excludes_deprecated(self, conn):
+        """复审 P2：deprecated skill 不通过 run_capability 暴露。"""
+        assert run_capability(conn, "deprecated-skill") == {}
+
+    def test_invokable_by_id_returned(self, conn):
+        """invokable_by_id 可见性仍可 run。"""
+        result = run_capability(conn, "code-analyzer")
+        assert result.get("name") == "code-analyzer"
+
+    def test_mcp_exposed_returned(self, conn):
+        """mcp_exposed 可见性仍可 run。"""
+        result = run_capability(conn, "doc-to-markdown")
+        assert result.get("name") == "doc-to-markdown"
+
 
 # =================================================================== #
 # Tests: warmstart_lookup

@@ -77,3 +77,26 @@ def test_json_output(tmp_path, capsys):
     out = capsys.readouterr().out
     assert out.strip().startswith("[")
     assert "doc-to-markdown" in out
+
+
+# --------------------------------------------------------------------------- #
+# 未初始化数据目录：只读命令干净失败，不隐式建库、不抛 traceback（复审 P2）
+# --------------------------------------------------------------------------- #
+
+import pytest
+
+
+@pytest.mark.parametrize("cmd", [
+    ["ls"],
+    ["show", "x"],
+    ["usage", "x"],
+    ["pending"],
+])
+def test_read_cmd_uninitialized_fails_cleanly(tmp_path, capsys, cmd):
+    missing = str(tmp_path / "never-inited")
+    rc = cli.main(cmd + ["--data-dir", missing])
+    assert rc != 0
+    assert "init" in capsys.readouterr().out.lower()
+    # 严格只读：不应隐式创建数据目录或空库
+    from pathlib import Path
+    assert not Path(missing).exists()

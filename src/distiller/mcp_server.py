@@ -121,10 +121,21 @@ def run_capability(
 ) -> dict:
     """返回调用指令（MVP 不实际执行，仅返回契约 + active branch impl_ref）。
 
-    未找到时返回 {}。
+    与 MCP 调用语义一致的可见性过滤（promoted≠exposed，复审 P2）：
+    只暴露 status='promoted' 且 visibility IN ('invokable_by_id','mcp_exposed') 的技能。
+    hidden / deprecated 一律返回 {}，不泄露内部能力元数据与 impl_ref。
+    如将来要 by-id 调用 hidden skill，需显式鉴权入口，而非 MCP 默认 run。
+
+    未找到 / 不可暴露时返回 {}。
     """
     skill = conn.execute(
-        "SELECT name, purpose, contract, when_to_use FROM skills WHERE name = ?",
+        """
+        SELECT name, purpose, contract, when_to_use
+        FROM skills
+        WHERE name = ?
+          AND status = 'promoted'
+          AND visibility IN ('invokable_by_id', 'mcp_exposed')
+        """,
         (skill_name,),
     ).fetchone()
     if skill is None:

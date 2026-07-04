@@ -13,12 +13,39 @@ from typing import Optional
 from . import cli_pending, config, db, observe, paths
 
 
+class _NotInitialized(Exception):
+    """数据目录未初始化——只读命令不应隐式建库（复审 P2）。"""
+
+
 def _open_conn(args):
-    """按 --data-dir 打开已初始化的数据仓库连接。"""
+    """按 --data-dir 打开**已初始化**的数据仓库连接（严格只读，不创建任何东西）。
+
+    未初始化时抛 _NotInitialized，由命令层转成友好报错 + 非零退出，
+    不再隐式 ensure_layout/建空库导致后续 `no such table`。
+    """
     overrides = {"data_dir": args.data_dir} if args.data_dir else {}
     cfg = config.load(overrides=overrides)
-    root = paths.ensure_layout(cfg.data_dir)
-    return db.connect(paths.db_path(root))
+    dbfile = paths.db_path(cfg.data_dir)
+    if not dbfile.exists():
+        raise _NotInitialized(str(cfg.data_dir))
+    conn = db.connect(dbfile)
+    if db.schema_version(conn) == 0:
+        conn.close()
+        raise _NotInitialized(str(cfg.data_dir))
+    return conn
+
+
+def _run_read(args, fn) -> int:
+    """只读命令统一入口：处理未初始化错误。fn(conn) 返回要 _emit 的对象。"""
+    try:
+        conn = _open_conn(args)
+    except _NotInitialized as e:
+        print(f"数据目录未初始化：{e}. 先运行 distiller init")
+        return 2
+    try:
+        return fn(conn)
+    finally:
+        conn.close()
 
 
 def _emit(args, obj) -> None:
@@ -62,43 +89,35 @@ def cmd_init(args) -> int:
 
 
 def cmd_ls(args) -> int:
-    conn = _open_conn(args)
-    try:
+    def _do(conn) -> int:
         _emit(args, observe.list_skills(conn))
-    finally:
-        conn.close()
-    return 0
+        return 0
+    return _run_read(args, _do)
 
 
 def cmd_show(args) -> int:
-    conn = _open_conn(args)
-    try:
+    def _do(conn) -> int:
         detail = observe.show_skill(conn, args.name)
         if not detail:
             print(f"未找到 skill: {args.name}")
             return 1
         _emit(args, detail)
-    finally:
-        conn.close()
-    return 0
+        return 0
+    return _run_read(args, _do)
 
 
 def cmd_usage(args) -> int:
-    conn = _open_conn(args)
-    try:
+    def _do(conn) -> int:
         _emit(args, observe.usage(conn, args.name))
-    finally:
-        conn.close()
-    return 0
+        return 0
+    return _run_read(args, _do)
 
 
 def cmd_pending(args) -> int:
-    conn = _open_conn(args)
-    try:
+    def _do(conn) -> int:
         _emit(args, cli_pending.list_pending(conn))
-    finally:
-        conn.close()
-    return 0
+        return 0
+    return _run_read(args, _do)
 
 
 def _add_data_dir(p: argparse.ArgumentParser) -> None:
